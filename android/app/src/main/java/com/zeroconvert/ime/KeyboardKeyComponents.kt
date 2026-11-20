@@ -331,9 +331,11 @@ fun KeyboardActionKey(
     onLongClick: (() -> Unit)? = null,
     onFlick: ((FlickDirection) -> Unit)? = null,
     onFlickPreview: ((FlickDirection?) -> Unit)? = null,
+    onHorizontalDrag: ((Int) -> Unit)? = null,
     onClick: () -> Unit,
     content: @Composable BoxScope.(isPressed: Boolean) -> Unit
 ) {
+    val currentOnHorizontalDrag by rememberUpdatedState(onHorizontalDrag)
     val currentOnClick by rememberUpdatedState(onClick)
     val currentOnLongClick by rememberUpdatedState(onLongClick)
     val currentOnFlick by rememberUpdatedState(onFlick)
@@ -386,6 +388,31 @@ fun KeyboardActionKey(
                             longPressTriggered = true
                             longHandler()
                         }
+                    }
+
+                    val dragHandler = currentOnHorizontalDrag
+                    if (dragHandler != null) {
+                        val tapped = try {
+                            awaitTapOrHorizontalDrag(
+                                pointerId = down.id,
+                                downPosition = down.position,
+                                widthPx = size.width.toFloat(),
+                                heightPx = size.height.toFloat(),
+                                forgivenessPx = forgivenessPx,
+                                slopPx = 14.dp.toPx(),
+                                stepPx = 9.dp.toPx(),
+                                onDragStart = {
+                                    longPressJob?.cancel()
+                                    !longPressTriggered
+                                },
+                                onDragSteps = dragHandler
+                            )
+                        } finally {
+                            longPressJob?.cancel()
+                            isPressed = false
+                        }
+                        if (tapped && !longPressTriggered) currentOnClick()
+                        return@awaitEachGesture
                     }
 
                     val flickPreview = currentOnFlickPreview

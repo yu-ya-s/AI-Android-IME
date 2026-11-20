@@ -227,7 +227,11 @@ fun KeyboardRootView(
             } else {
                 imeService.keyboardKeyHeightState.value.dp
             }
-            CompositionLocalProvider(LocalKeyboardKeyHeight provides keyHeight) {
+            CompositionLocalProvider(
+                LocalKeyboardKeyHeight provides keyHeight,
+                LocalSpaceCursorDrag provides remember(imeService) { imeService::moveCursorBySteps },
+                LocalSwipeDelete provides imeService.swipeDeleteHandler
+            ) {
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -1293,22 +1297,28 @@ fun RepeatingIconButton(
     onBeforePress: () -> Unit = {},
     hapticOnPress: Boolean = true,
     contentDescription: String? = null,
+    swipeDelete: SwipeDeleteHandler? = null,
     content: @Composable () -> Unit
 ) {
     val currentOnClick by rememberUpdatedState(onClick)
     val currentOnBeforePress by rememberUpdatedState(onBeforePress)
+    val currentSwipeDelete by rememberUpdatedState(swipeDelete)
     val haptic by rememberUpdatedState(LocalOnKeyPressHaptic.current)
     val bordersEnabled = LocalKeyBordersEnabled.current
     val coroutineScope = rememberCoroutineScope()
     val density = LocalDensity.current
     var isPressed by remember { mutableStateOf(false) }
+    // With swipe-delete the first deletion waits for release so a slide does not eat a character.
+    var repeatStarted by remember { mutableStateOf(false) }
 
     DisposableEffect(isPressed) {
         var job: Job? = null
         if (isPressed) {
+            repeatStarted = false
             job = coroutineScope.launch {
-                currentOnClick()
+                if (currentSwipeDelete == null) currentOnClick()
                 delay(initialDelayMs)
+                repeatStarted = true
                 var repeatCount = 0
                 while (isActive) {
                     currentOnClick()
@@ -1342,6 +1352,40 @@ fun RepeatingIconButton(
                 currentOnBeforePress()
                 if (hapticOnPress) haptic()
                 isPressed = true
+                val swipe = currentSwipeDelete
+                if (swipe != null) {
+                    var swiping = false
+                    var offsetSteps = 0
+                    val tapped = try {
+                        awaitTapOrHorizontalDrag(
+                            pointerId = down.id,
+                            downPosition = down.position,
+                            widthPx = size.width.toFloat(),
+                            heightPx = size.height.toFloat(),
+                            forgivenessPx = forgivenessPx,
+                            slopPx = with(density) { 16.dp.toPx() },
+                            stepPx = with(density) { 22.dp.toPx() },
+                            onDragStart = {
+                                if (!repeatStarted && swipe.begin()) {
+                                    swiping = true
+                                    isPressed = false
+                                    true
+                                } else {
+                                    false
+                                }
+                            },
+                            onDragSteps = { steps ->
+                                offsetSteps += steps
+                                swipe.update(maxOf(0, -offsetSteps))
+                            }
+                        )
+                    } finally {
+                        isPressed = false
+                        if (swiping) swipe.finish()
+                    }
+                    if (tapped && !repeatStarted) currentOnClick()
+                    return@awaitEachGesture
+                }
                 try {
                     awaitPointerReleaseInBounds(
                         pointerId = down.id,
@@ -2046,7 +2090,8 @@ private fun SharedQwertyLayout(
                         baseColor = actionKeyBg,
                         palette = palette,
                         onBeforePress = flushBeforeAction,
-                        hapticOnPress = false
+                        hapticOnPress = false,
+                        swipeDelete = LocalSwipeDelete.current
                     ) {
                         Icon(
                             imageVector = Icons.Default.Backspace,
@@ -2086,7 +2131,8 @@ private fun SharedQwertyLayout(
                     contentDescription = if (isSplit) stringResource(R.string.space_key) else "日本語を入力",
                     onBeforePress = flushBeforeAction,
                     onClick = onSpace,
-                    onLongClick = onLongPressSpace
+                    onLongClick = onLongPressSpace,
+                    onHorizontalDrag = LocalSpaceCursorDrag.current
                 ) {
                     if (isSplit) Icon(
                         imageVector = Icons.Default.SpaceBar,

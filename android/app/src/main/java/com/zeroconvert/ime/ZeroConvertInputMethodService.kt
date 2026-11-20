@@ -101,6 +101,7 @@ class ZeroConvertInputMethodService : InputMethodService(),
         // "system" or a ZeroConThemes id ("dark_blue", "graphite", "forest", "plum", "sakura", "paper").
         // Legacy "dark"/"light" values are still resolved by resolveZeroConThemeId.
         const val KEY_THEME_MODE = "theme_mode"
+        private const val SWIPE_DELETE_CONTEXT_CHARS = 1000
         const val KEY_JAPANESE_LAYOUT = "japanese_keyboard_layout" // "FLICK_12KEY", "QWERTY"
         const val KEY_KEY_HEIGHT_DP = "keyboard_key_height_dp" // int dp (40..64), default 46
         const val KEY_FLICK_ONLY = "flick_only" // boolean, default true
@@ -3243,6 +3244,69 @@ class ZeroConvertInputMethodService : InputMethodService(),
 
     fun handleCursorRight() {
         if (performCursorMove(1)) vibrateOnKeyPress()
+    }
+
+    /** Space key slide: one step per character, negative to the left. */
+    fun moveCursorBySteps(steps: Int) {
+        val direction = if (steps < 0) -1 else 1
+        var moved = false
+        repeat(kotlin.math.abs(steps)) {
+            if (!performCursorMove(direction)) return@repeat
+            moved = true
+        }
+        if (moved) vibrateOnKeyPress()
+    }
+
+    private var swipeDeleteContext: CharSequence = ""
+    private var swipeDeleteCursor = -1
+    private var swipeDeleteLength = 0
+
+    /**
+     * Backspace slide: selects whole words before the cursor while sliding left and deletes the
+     * selection on release, so the extent is visible before anything is removed. Only for
+     * committed text; while composing the key keeps its normal behaviour.
+     */
+    internal val swipeDeleteHandler = object : SwipeDeleteHandler {
+        override fun begin(): Boolean {
+            if (!composingText.isEmpty || isTranslationMode() || conversionRange.active) return false
+            val ic = currentInputConnection ?: return false
+            val extracted = try {
+                ic.getExtractedText(android.view.inputmethod.ExtractedTextRequest(), 0)
+            } catch (_: RuntimeException) {
+                null
+            } ?: return false
+            if (extracted.selectionStart < 0 || extracted.selectionStart != extracted.selectionEnd) return false
+            val before = ic.getTextBeforeCursor(SWIPE_DELETE_CONTEXT_CHARS, 0)
+            if (before.isNullOrEmpty()) return false
+            clearPostCompositionDisplay()
+            canRewindOnNextBackspace = false
+            swipeDeleteCursor = extracted.startOffset + extracted.selectionEnd
+            swipeDeleteContext = before
+            swipeDeleteLength = 0
+            return true
+        }
+
+        override fun update(wordCount: Int) {
+            val ic = currentInputConnection ?: return
+            if (swipeDeleteCursor < 0) return
+            val length = SwipeDeleteSpan.lengthForWords(swipeDeleteContext, wordCount)
+            if (length == swipeDeleteLength) return
+            swipeDeleteLength = length
+            selfIssuedCursorMoveAt = System.currentTimeMillis()
+            ic.setSelection(swipeDeleteCursor - length, swipeDeleteCursor)
+            vibrateOnKeyPress()
+        }
+
+        override fun finish() {
+            val ic = currentInputConnection
+            if (ic != null && swipeDeleteCursor >= 0 && swipeDeleteLength > 0) {
+                selfIssuedCursorMoveAt = System.currentTimeMillis()
+                ic.commitText("", 1)
+            }
+            swipeDeleteContext = ""
+            swipeDeleteCursor = -1
+            swipeDeleteLength = 0
+        }
     }
 
     private fun performCursorMove(direction: Int): Boolean {

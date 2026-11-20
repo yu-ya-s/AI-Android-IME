@@ -750,7 +750,8 @@ private fun FlickSideSpaceButton(
         baseColor = actionKeyBg,
         contentDescription = "空白",
         onClick = onSpace,
-        onLongClick = onLongPressSpace
+        onLongClick = onLongPressSpace,
+        onHorizontalDrag = LocalSpaceCursorDrag.current
     ) {
         Icon(
             imageVector = Icons.Filled.SpaceBar,
@@ -777,7 +778,8 @@ private fun FlickSideBackspaceButton(
         cornerRadius = ZeroConRadius.Key,
         baseColor = actionKeyBg,
         palette = palette,
-        hapticOnPress = false
+        hapticOnPress = false,
+        swipeDelete = LocalSwipeDelete.current
     ) {
         Icon(imageVector = Icons.AutoMirrored.Outlined.Backspace, contentDescription = "Backspace", tint = textColor, modifier = Modifier.size(22.dp))
     }
