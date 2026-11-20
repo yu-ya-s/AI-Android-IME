@@ -47,6 +47,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.lerp
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.graphics.vector.rememberVectorPainter
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.layout.LayoutCoordinates
@@ -205,7 +206,15 @@ fun KeyboardRootView(
             } else {
                 0.dp
             }
-            val oneHandedMode = if (isFloating || isSplit) OneHandedMode.OFF else imeService.oneHandedModeState.value
+            // QWERTY keys are too narrow one-handed, so it always uses the full width; the saved
+            // one-handed side comes back when switching to the 12-key layout.
+            val isQwertyLayout = keyboardMode != KeyboardMode.NUMERIC &&
+                imeService.japaneseLayoutState.value == JapaneseInputLayout.QWERTY
+            val oneHandedMode = if (isFloating || isSplit || isQwertyLayout) {
+                OneHandedMode.OFF
+            } else {
+                imeService.oneHandedModeState.value
+            }
             val placementMode = when {
                 isFloating -> KeyboardPlacementMode.FLOATING
                 isSplit -> KeyboardPlacementMode.SPLIT
@@ -240,7 +249,9 @@ fun KeyboardRootView(
                     onActiveTabChange = { activeTab = it },
                     keyboardMode = keyboardMode,
                     placementMode = placementMode,
+                    oneHandedMode = oneHandedMode,
                     canSplit = canSplit,
+                    canOneHand = !isQwertyLayout,
                     palette = palette,
                     surfaceColor = surfaceColor,
                     actionKeyBg = actionKeyBg,
@@ -570,16 +581,9 @@ fun KeyboardRootView(
                         .fillMaxWidth()
                         .height(keyboardContentHeight(keyHeight, keyRowCount) + contentExtraHeight)
                 ) {
+                    // The full-width and flip buttons live in the toolbar; the side stays empty.
                     if (oneHandedMode == OneHandedMode.RIGHT) {
-                        OneHandedSideRail(
-                            modifier = Modifier.weight(0.18f).fillMaxHeight(),
-                            actionKeyBg = actionKeyBg,
-                            textColor = textColor,
-                            palette = palette,
-                            isLeftAligned = false,
-                            onFlipSide = { imeService.setOneHandedMode(OneHandedMode.LEFT) },
-                            onExitOneHanded = { imeService.setOneHandedMode(OneHandedMode.OFF) }
-                        )
+                        Spacer(modifier = Modifier.weight(0.18f).fillMaxHeight())
                         Box(modifier = Modifier.weight(0.82f).fillMaxHeight()) {
                             contentAreaBlock()
                         }
@@ -587,15 +591,7 @@ fun KeyboardRootView(
                         Box(modifier = Modifier.weight(0.82f).fillMaxHeight()) {
                             contentAreaBlock()
                         }
-                        OneHandedSideRail(
-                            modifier = Modifier.weight(0.18f).fillMaxHeight(),
-                            actionKeyBg = actionKeyBg,
-                            textColor = textColor,
-                            palette = palette,
-                            isLeftAligned = true,
-                            onFlipSide = { imeService.setOneHandedMode(OneHandedMode.RIGHT) },
-                            onExitOneHanded = { imeService.setOneHandedMode(OneHandedMode.OFF) }
-                        )
+                        Spacer(modifier = Modifier.weight(0.18f).fillMaxHeight())
                     }
                 }
             } else {
@@ -627,7 +623,9 @@ private fun KeyboardTopBars(
     onActiveTabChange: (KeyboardTab) -> Unit,
     keyboardMode: KeyboardMode,
     placementMode: KeyboardPlacementMode,
+    oneHandedMode: OneHandedMode,
     canSplit: Boolean,
+    canOneHand: Boolean,
     palette: ZeroConPalette,
     surfaceColor: Color,
     actionKeyBg: Color,
@@ -875,11 +873,32 @@ private fun KeyboardTopBars(
                             }
                         }
 
+                        if (oneHandedMode != OneHandedMode.OFF) {
+                            val isLeftAligned = oneHandedMode == OneHandedMode.LEFT
+                            ToolbarIconButton(
+                                icon = Icons.Default.OpenInFull,
+                                description = "全幅に戻す",
+                                tint = palette.textSecondary,
+                                onClick = { imeService.setOneHandedMode(OneHandedMode.OFF) }
+                            )
+                            ToolbarIconButton(
+                                icon = Icons.Default.SwapHoriz,
+                                description = if (isLeftAligned) "右寄せに切り替え" else "左寄せに切り替え",
+                                tint = palette.textSecondary,
+                                onClick = {
+                                    imeService.setOneHandedMode(
+                                        if (isLeftAligned) OneHandedMode.RIGHT else OneHandedMode.LEFT
+                                    )
+                                }
+                            )
+                        }
+
                         if (barPolicy.showKeyboardPlacementMenu) {
                             key(imeService.inputViewEpochState.value) {
                                 KeyboardPlacementMenu(
                                     activeMode = placementMode,
                                     canSplit = canSplit,
+                                    canOneHand = canOneHand,
                                     palette = palette,
                                     onSelect = imeService::setKeyboardPlacementMode
                                 )
@@ -994,6 +1013,7 @@ private fun KeyboardTopBars(
 private fun KeyboardPlacementMenu(
     activeMode: KeyboardPlacementMode,
     canSplit: Boolean,
+    canOneHand: Boolean,
     palette: ZeroConPalette,
     onSelect: (KeyboardPlacementMode) -> Unit
 ) {
@@ -1025,7 +1045,12 @@ private fun KeyboardPlacementMenu(
             modifier = Modifier.background(palette.surface),
             properties = PopupProperties(focusable = false)
         ) {
-            for (mode in listOf(KeyboardPlacementMode.FLOATING, KeyboardPlacementMode.ONE_HANDED, KeyboardPlacementMode.SPLIT)) {
+            val modes = listOfNotNull(
+                KeyboardPlacementMode.FLOATING,
+                KeyboardPlacementMode.ONE_HANDED.takeIf { canOneHand },
+                KeyboardPlacementMode.SPLIT
+            )
+            for (mode in modes) {
                 val selected = mode == activeMode
                 val enabled = mode != KeyboardPlacementMode.SPLIT || canSplit
                 DropdownMenuItem(
@@ -1071,89 +1096,30 @@ private fun KeyboardPlacementMenu(
 }
 
 @Composable
-fun OneHandedSideRail(
-    modifier: Modifier,
-    actionKeyBg: Color,
-    textColor: Color,
-    palette: ZeroConPalette,
-    isLeftAligned: Boolean,
-    onFlipSide: () -> Unit,
-    onExitOneHanded: () -> Unit
+private fun ToolbarIconButton(
+    icon: ImageVector,
+    description: String,
+    tint: Color,
+    onClick: () -> Unit
 ) {
-    Column(
-        modifier = modifier.padding(horizontal = 4.dp, vertical = 6.dp),
-        verticalArrangement = Arrangement.spacedBy(8.dp)
+    Box(
+        modifier = Modifier
+            .size(36.dp)
+            .clip(RoundedCornerShape(ZeroConRadius.Chip))
+            .semantics {
+                role = Role.Button
+                contentDescription = description
+            }
+            .pointerDownHaptic()
+            .clickable(onClick = onClick),
+        contentAlignment = Alignment.Center
     ) {
-        KeyCapFrame(
-            modifier = Modifier
-                .fillMaxWidth()
-                .weight(1f)
-                .semantics(mergeDescendants = true) {
-                    role = Role.Button
-                    contentDescription = "全幅に戻す"
-                }
-                .pointerDownHaptic()
-                .clickable(onClick = onExitOneHanded),
-            visualPadding = PaddingValues(0.dp),
-            cornerRadius = ZeroConRadius.Key,
-            baseColor = actionKeyBg,
-            isPressed = false,
-            palette = palette
-        ) {
-            Column(
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.spacedBy(2.dp)
-            ) {
-                Icon(
-                    imageVector = Icons.Default.OpenInFull,
-                    contentDescription = null,
-                    tint = textColor,
-                    modifier = Modifier.size(18.dp)
-                )
-                Text(
-                    text = "全幅",
-                    color = textColor,
-                    fontSize = 10.sp,
-                    fontWeight = FontWeight.Medium,
-                    maxLines = 1
-                )
-            }
-        }
-        KeyCapFrame(
-            modifier = Modifier
-                .fillMaxWidth()
-                .weight(1f)
-                .semantics(mergeDescendants = true) {
-                    role = Role.Button
-                    contentDescription = if (isLeftAligned) "右寄せに切り替え" else "左寄せに切り替え"
-                }
-                .pointerDownHaptic()
-                .clickable(onClick = onFlipSide),
-            visualPadding = PaddingValues(0.dp),
-            cornerRadius = ZeroConRadius.Key,
-            baseColor = actionKeyBg,
-            isPressed = false,
-            palette = palette
-        ) {
-            Column(
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.spacedBy(2.dp)
-            ) {
-                Icon(
-                    imageVector = Icons.Default.SwapHoriz,
-                    contentDescription = null,
-                    tint = palette.primaryAccentSoft,
-                    modifier = Modifier.size(20.dp)
-                )
-                Text(
-                    text = if (isLeftAligned) "右へ" else "左へ",
-                    color = textColor,
-                    fontSize = 10.sp,
-                    fontWeight = FontWeight.Medium,
-                    maxLines = 1
-                )
-            }
-        }
+        Icon(
+            imageVector = icon,
+            contentDescription = null,
+            tint = tint,
+            modifier = Modifier.size(20.dp)
+        )
     }
 }
 

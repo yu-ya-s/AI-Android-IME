@@ -661,16 +661,9 @@ fun MainScreen(
                                             previewKeyboardBody()
                                         } else {
                                             Row(modifier = Modifier.fillMaxSize()) {
+                                                // Matches the keyboard: the unused side is left empty.
                                                 if (oneHandedMode == OneHandedMode.RIGHT) {
-                                                    OneHandedSideRail(
-                                                        modifier = Modifier.weight(0.18f).fillMaxHeight(),
-                                                        actionKeyBg = palette.keyModifier,
-                                                        textColor = palette.textPrimary,
-                                                        palette = palette,
-                                                        isLeftAligned = false,
-                                                        onFlipSide = { saveOneHandedMode(OneHandedMode.LEFT) },
-                                                        onExitOneHanded = { saveOneHandedMode(OneHandedMode.OFF) }
-                                                    )
+                                                    Spacer(modifier = Modifier.weight(0.18f).fillMaxHeight())
                                                     Box(modifier = Modifier.weight(0.82f).fillMaxHeight()) {
                                                         previewKeyboardBody()
                                                     }
@@ -678,15 +671,7 @@ fun MainScreen(
                                                     Box(modifier = Modifier.weight(0.82f).fillMaxHeight()) {
                                                         previewKeyboardBody()
                                                     }
-                                                    OneHandedSideRail(
-                                                        modifier = Modifier.weight(0.18f).fillMaxHeight(),
-                                                        actionKeyBg = palette.keyModifier,
-                                                        textColor = palette.textPrimary,
-                                                        palette = palette,
-                                                        isLeftAligned = true,
-                                                        onFlipSide = { saveOneHandedMode(OneHandedMode.RIGHT) },
-                                                        onExitOneHanded = { saveOneHandedMode(OneHandedMode.OFF) }
-                                                    )
+                                                    Spacer(modifier = Modifier.weight(0.18f).fillMaxHeight())
                                                 }
                                             }
                                         }
