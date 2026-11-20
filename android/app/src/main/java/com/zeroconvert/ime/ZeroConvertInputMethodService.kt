@@ -187,6 +187,10 @@ class ZeroConvertInputMethodService : InputMethodService(),
     val isAutoCommitRewindState = mutableStateOf(false)
     val aiProfileState = mutableStateOf("")
     val themeModeState = mutableStateOf("system")
+    private val inlineAutofill =
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) InlineAutofillSuggestions(this) else null
+    val inlineAutofillViews: List<View>
+        get() = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) inlineAutofill?.views.orEmpty() else emptyList()
     val japaneseLayoutState = mutableStateOf(JapaneseInputLayout.FLICK_12KEY)
     val keyboardKeyHeightState = mutableStateOf(46)
     val isFlickOnlyState = mutableStateOf(true)
@@ -3971,7 +3975,23 @@ class ZeroConvertInputMethodService : InputMethodService(),
         }
     }
 
+    @androidx.annotation.RequiresApi(Build.VERSION_CODES.R)
+    override fun onCreateInlineSuggestionsRequest(
+        uiExtras: android.os.Bundle
+    ): android.view.inputmethod.InlineSuggestionsRequest? {
+        val systemDark = (resources.configuration.uiMode and
+            android.content.res.Configuration.UI_MODE_NIGHT_MASK) == android.content.res.Configuration.UI_MODE_NIGHT_YES
+        val palette = resolveZeroConTheme(themeModeState.value, systemDark).palette
+        return inlineAutofill?.createRequest(palette, uiExtras)
+    }
+
+    @androidx.annotation.RequiresApi(Build.VERSION_CODES.R)
+    override fun onInlineSuggestionsResponse(
+        response: android.view.inputmethod.InlineSuggestionsResponse
+    ): Boolean = inlineAutofill?.onResponse(response) ?: false
+
     override fun onFinishInput() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) inlineAutofill?.clear()
         cancelClipboardEdit()
         updateInputPrivacy(null)
         exitTranslationMode(revert = false)

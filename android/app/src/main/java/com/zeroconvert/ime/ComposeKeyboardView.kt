@@ -732,7 +732,10 @@ private fun KeyboardTopBars(
                                 horizontalArrangement = Arrangement.Start,
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
-                                if (hasClipboardSuggestions) {
+                                val autofillViews = imeService.inlineAutofillViews
+                                if (autofillViews.isNotEmpty()) {
+                                    InlineAutofillStrip(autofillViews, Modifier.fillMaxSize())
+                                } else if (hasClipboardSuggestions) {
                                     ClipboardSuggestionStrip(
                                         suggestions = suggestions,
                                         chipColor = actionKeyBg.copy(alpha = 0.9f),
