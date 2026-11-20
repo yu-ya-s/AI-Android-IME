@@ -6,8 +6,12 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Undo
-import androidx.compose.material.icons.filled.Backspace
-import androidx.compose.material.icons.filled.Mood
+import androidx.compose.material.icons.automirrored.filled.KeyboardArrowLeft
+import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
+import androidx.compose.material.icons.automirrored.outlined.Backspace
+import androidx.compose.material.icons.filled.SpaceBar
+import androidx.compose.material.icons.outlined.Mood
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -575,6 +579,9 @@ private fun ColumnScope.FlickGridRow(
     }
 }
 
+const val CURSOR_LEFT_DESCRIPTION = "カーソルを左へ"
+const val CURSOR_RIGHT_DESCRIPTION = "カーソルを右へ"
+
 @Composable
 private fun FlickSideUndoButton(
     modifier: Modifier,
@@ -587,7 +594,7 @@ private fun FlickSideUndoButton(
     KeyboardActionKey(
         modifier = modifier,
         visualPadding = visualPadding,
-        cornerRadius = 8.dp,
+        cornerRadius = ZeroConRadius.Key,
         baseColor = actionKeyBg,
         palette = palette,
         contentDescription = "元に戻す",
@@ -615,7 +622,7 @@ private fun FlickSideSymbolsButton(
     KeyboardActionKey(
         modifier = modifier,
         visualPadding = visualPadding,
-        cornerRadius = 8.dp,
+        cornerRadius = ZeroConRadius.Key,
         baseColor = actionKeyBg,
         palette = palette,
         contentDescription = "記号",
@@ -645,7 +652,7 @@ private fun FlickSideEmojiSymbolsButton(
     KeyboardActionKey(
         modifier = modifier,
         visualPadding = visualPadding,
-        cornerRadius = 8.dp,
+        cornerRadius = ZeroConRadius.Key,
         baseColor = actionKeyBg,
         palette = palette,
         contentDescription = "絵文字・記号",
@@ -658,24 +665,12 @@ private fun FlickSideEmojiSymbolsButton(
         },
         onClick = onOpenEmoji
     ) {
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.Center
-        ) {
-            Icon(
-                imageVector = Icons.Default.Mood,
-                contentDescription = null,
-                tint = textColor,
-                modifier = Modifier.size(18.dp)
-            )
-            Spacer(modifier = Modifier.width(1.dp))
-            Text(
-                text = "記",
-                color = textColor,
-                fontSize = 14.sp,
-                fontWeight = FontWeight.Medium
-            )
-        }
+        Icon(
+            imageVector = Icons.Outlined.Mood,
+            contentDescription = null,
+            tint = textColor,
+            modifier = Modifier.size(22.dp)
+        )
     }
 }
 
@@ -689,7 +684,7 @@ private fun FlickSideEnterButton(
     KeyboardActionKey(
         modifier = modifier,
         visualPadding = visualPadding,
-        cornerRadius = 8.dp,
+        cornerRadius = ZeroConRadius.Key,
         baseColor = palette.primaryAccent,
         isAccent = true,
         onClick = onEnter
@@ -698,7 +693,7 @@ private fun FlickSideEnterButton(
             text = "確定",
             color = palette.onAccent,
             fontSize = 15.sp,
-            fontWeight = FontWeight.Bold
+            fontWeight = FontWeight.Medium
         )
     }
 }
@@ -715,13 +710,18 @@ private fun FlickSideSpaceButton(
     KeyboardActionKey(
         modifier = modifier,
         visualPadding = visualPadding,
-        cornerRadius = 8.dp,
+        cornerRadius = ZeroConRadius.Key,
         baseColor = actionKeyBg,
         contentDescription = "空白",
         onClick = onSpace,
         onLongClick = onLongPressSpace
     ) {
-        Text(text = "␣", color = textColor, fontSize = 20.sp)
+        Icon(
+            imageVector = Icons.Filled.SpaceBar,
+            contentDescription = null,
+            tint = textColor,
+            modifier = Modifier.size(26.dp)
+        )
     }
 }
 
@@ -738,18 +738,19 @@ private fun FlickSideBackspaceButton(
         onClick = onDelete,
         modifier = modifier,
         visualPadding = visualPadding,
-        cornerRadius = 8.dp,
+        cornerRadius = ZeroConRadius.Key,
         baseColor = actionKeyBg,
         palette = palette,
         hapticOnPress = false
     ) {
-        Icon(imageVector = Icons.Default.Backspace, contentDescription = "Backspace", tint = textColor, modifier = Modifier.size(22.dp))
+        Icon(imageVector = Icons.AutoMirrored.Outlined.Backspace, contentDescription = "Backspace", tint = textColor, modifier = Modifier.size(22.dp))
     }
 }
 
 @Composable
 private fun FlickSideCursorButton(
-    text: String,
+    icon: ImageVector,
+    description: String,
     modifier: Modifier,
     visualPadding: PaddingValues,
     actionKeyBg: Color,
@@ -763,20 +764,25 @@ private fun FlickSideCursorButton(
         initialDelayMs = 300L,
         repeatIntervalMs = 50L,
         visualPadding = visualPadding,
-        cornerRadius = 8.dp,
+        cornerRadius = ZeroConRadius.Key,
         baseColor = actionKeyBg,
         palette = palette,
         hapticOnPress = false
     ) {
-        Text(text = text, color = textColor, fontSize = 14.sp)
+        Icon(
+            imageVector = icon,
+            contentDescription = description,
+            tint = textColor,
+            modifier = Modifier.size(28.dp)
+        )
     }
 }
 
 /**
  * Shared 5x4 12-key grid keeping common utility keys in identical positions across
  * Japanese, English, and Numeric modes (following Gboard's 12-key layout):
- * Left column:  [Undo (↶)] [◀] [☺記 / !?#] [あa1]
- * Right column: [Backspace] [▶] [␣] [確定]
+ * Left column:  [Undo (↶)] [‹] [☺ / !?#] [あa1]
+ * Right column: [Backspace] [›] [space] [確定]
  */
 @Composable
 private fun Flick12KeyGrid(
@@ -826,8 +832,8 @@ private fun Flick12KeyGrid(
             getRootCoords = getRootCoords,
             onFlickUpdateById = onFlickUpdateById,
             onFlickComplete = onFlickComplete,
-            leftKey = { mod, pad -> FlickSideCursorButton("◀", mod, pad, actionKeyBg, textColor, palette, onCursorLeft) },
-            rightKey = { mod, pad -> FlickSideCursorButton("▶", mod, pad, actionKeyBg, textColor, palette, onCursorRight) }
+            leftKey = { mod, pad -> FlickSideCursorButton(Icons.AutoMirrored.Filled.KeyboardArrowLeft, CURSOR_LEFT_DESCRIPTION, mod, pad, actionKeyBg, textColor, palette, onCursorLeft) },
+            rightKey = { mod, pad -> FlickSideCursorButton(Icons.AutoMirrored.Filled.KeyboardArrowRight, CURSOR_RIGHT_DESCRIPTION, mod, pad, actionKeyBg, textColor, palette, onCursorRight) }
         )
 
         FlickGridRow(
@@ -1413,7 +1419,7 @@ fun FlickKeyCell(
                 }
             },
         visualPadding = visualPadding,
-        cornerRadius = 8.dp,
+        cornerRadius = ZeroConRadius.Key,
         baseColor = bgColor,
         isPressed = isPressed,
         palette = palette
@@ -1429,10 +1435,10 @@ fun FlickKeyCell(
             val mainTextSize = when {
                 keyDef.label.length > 2 && isCompactKey -> 12.sp
                 keyDef.label.length > 2 -> 14.sp
-                isCompactKey -> 17.sp
-                else -> 19.sp
+                isCompactKey -> 18.sp
+                else -> 21.sp
             }
-            val subTextSize = if (isCompactKey) 7.sp else 8.5.sp
+            val subTextSize = if (isCompactKey) 7.sp else 8.sp
 
             Column(
                 modifier = Modifier.fillMaxSize(),
@@ -1443,12 +1449,13 @@ fun FlickKeyCell(
                     text = keyDef.label,
                     color = textColor,
                     fontSize = mainTextSize,
-                    fontWeight = FontWeight.Bold
+                    fontWeight = FontWeight.Normal
                 )
                 if (keyDef.subText.isNotEmpty()) {
                     Text(
+                        // Hint row stays available but recedes so the main kana leads.
                         text = keyDef.subText,
-                        color = textColor.copy(alpha = 0.5f),
+                        color = textColor.copy(alpha = 0.36f),
                         fontSize = subTextSize,
                         fontWeight = FontWeight.Normal,
                         maxLines = 1
@@ -1595,13 +1602,13 @@ private fun PopupCell(
 ) {
     Surface(
         modifier = modifier.size(cellSize),
-        shape = RoundedCornerShape(10.dp),
+        shape = RoundedCornerShape(ZeroConRadius.Popup),
         color = if (isSelected) palette.primaryAccent else palette.surfaceElevated.copy(alpha = 0.95f),
         border = androidx.compose.foundation.BorderStroke(
-            width = if (isSelected) 1.5.dp else 1.dp,
-            color = if (isSelected) palette.primaryAccentSoft else palette.borderSubtle
+            width = if (isSelected) 0.dp else 1.dp,
+            color = if (isSelected) Color.Transparent else palette.borderSubtle.copy(alpha = 0.6f)
         ),
-        shadowElevation = if (isSelected) 8.dp else 3.dp
+        shadowElevation = if (isSelected) 6.dp else 2.dp
     ) {
         Box(
             modifier = Modifier.fillMaxSize(),
@@ -1611,7 +1618,7 @@ private fun PopupCell(
                 text = text,
                 color = if (isSelected) palette.onAccent else palette.textPrimary,
                 fontSize = if (isSelected) 20.sp else 16.sp,
-                fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium
+                fontWeight = FontWeight.Medium
             )
         }
     }

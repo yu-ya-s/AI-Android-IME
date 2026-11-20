@@ -18,9 +18,12 @@ import android.util.Log
 import android.view.View
 import android.view.ViewGroup.LayoutParams.MATCH_PARENT
 import android.widget.Toast
+import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.ui.graphics.toArgb
+import androidx.core.view.WindowInsetsControllerCompat
 import androidx.compose.ui.platform.ComposeView
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.*
@@ -2258,6 +2261,35 @@ class ZeroConvertInputMethodService : InputMethodService(),
         window?.window?.let { onConfigureWindow(it, isFullscreenMode, !isShowInputRequested) }
     }
 
+    private var defaultNavigationBarColor: Int? = null
+    private var defaultLightNavigationBars: Boolean? = null
+
+    /**
+     * Paints the system navigation bar strip under the docked keyboard with the keyboard canvas,
+     * so the gesture/IME-switch area no longer shows as a white band below the keys. The floating
+     * keyboard restores the original window colors because it does not sit on the bar.
+     */
+    @Suppress("DEPRECATION")
+    private fun applyNavigationBarColor(palette: ZeroConPalette, floating: Boolean) {
+        val imeWindow = window?.window ?: return
+        val controller = WindowInsetsControllerCompat(imeWindow, imeWindow.decorView)
+        if (defaultNavigationBarColor == null) {
+            defaultNavigationBarColor = imeWindow.navigationBarColor
+            defaultLightNavigationBars = controller.isAppearanceLightNavigationBars
+        }
+        if (floating) {
+            defaultNavigationBarColor?.let { imeWindow.navigationBarColor = it }
+            defaultLightNavigationBars?.let { controller.isAppearanceLightNavigationBars = it }
+            return
+        }
+        imeWindow.addFlags(android.view.WindowManager.LayoutParams.FLAG_DRAWS_SYSTEM_BAR_BACKGROUNDS)
+        imeWindow.navigationBarColor = palette.canvas.toArgb()
+        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.Q) {
+            imeWindow.isNavigationBarContrastEnforced = false
+        }
+        controller.isAppearanceLightNavigationBars = !palette.isDark
+    }
+
     override fun onCreateInputView(): View {
         window?.window?.decorView?.let { decorView ->
             decorView.setViewTreeLifecycleOwner(this)
@@ -2285,6 +2317,8 @@ class ZeroConvertInputMethodService : InputMethodService(),
         composeView.setContent {
             val floating = floatingKeyboard.isFloating
             val themeMode = themeModeState.value
+            val navPalette = rememberZeroConPalette(themeMode)
+            SideEffect { applyNavigationBarColor(navPalette, floating) }
             FloatingKeyboardPanel(
                 host = host,
                 floating = floating,

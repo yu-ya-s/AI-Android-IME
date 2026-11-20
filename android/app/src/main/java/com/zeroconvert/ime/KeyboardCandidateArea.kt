@@ -200,7 +200,7 @@ fun KeyboardAssistBar(
     onUndo: () -> Unit
 ) {
     Row(
-        modifier = Modifier.fillMaxWidth().height(KeyboardBarHeight).background(palette.surface),
+        modifier = Modifier.fillMaxWidth().height(KeyboardBarHeight).background(palette.canvas),
         verticalAlignment = Alignment.CenterVertically
     ) {
         val label = when {

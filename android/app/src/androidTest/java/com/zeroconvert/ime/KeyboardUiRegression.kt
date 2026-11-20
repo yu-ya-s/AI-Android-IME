@@ -457,10 +457,10 @@ class KeyboardUiRegression(private val instrumentation: Instrumentation) {
                 // leave no empty band; the bottom row has to stay inside the frame either way.
                 update(Case(numberRow = false))
                 val withoutRow = Rect(frame)
-                val bottomWithout = bounds("◀").bottom
+                val bottomWithout = bounds("カーソルを左へ").bottom
                 update(Case(numberRow = true))
                 val withRow = Rect(frame)
-                val bottomWith = bounds("◀").bottom
+                val bottomWith = bounds("カーソルを左へ").bottom
                 val rowHeight = 46 * density
                 check(kotlin.math.abs(withRow.height() - withoutRow.height() - rowHeight) <= 2f) {
                     "Number row changed the height by ${withRow.height() - withoutRow.height()} instead of $rowHeight"
@@ -687,11 +687,11 @@ class KeyboardUiRegression(private val instrumentation: Instrumentation) {
                     val emojiOrSymbols = if (mode == KeyboardMode.NUMERIC) "記号" else "絵文字・記号"
                     return listOf(
                         bounds("元に戻す"),
-                        bounds("◀"),
+                        bounds("カーソルを左へ"),
                         bounds(emojiOrSymbols),
                         bounds("入力モード:${mode.label}"),
                         bounds("Backspace"),
-                        bounds("▶"),
+                        bounds("カーソルを右へ"),
                         bounds("空白"),
                         bounds("確定")
                     )

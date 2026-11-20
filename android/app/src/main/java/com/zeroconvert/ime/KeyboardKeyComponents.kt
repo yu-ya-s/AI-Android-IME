@@ -65,6 +65,13 @@ import kotlin.math.max
 import kotlin.math.min
 import kotlin.math.roundToInt
 
+/** Shared corner radii so keys, chips, and popups use one visual language. */
+object ZeroConRadius {
+    val Key: Dp = 6.dp
+    val Chip: Dp = 6.dp
+    val Popup: Dp = 8.dp
+}
+
 /** Invoked strictly on initial pointer-down for press-only haptic feedback. */
 val LocalOnKeyPressHaptic = staticCompositionLocalOf<() -> Unit> { {} }
 
@@ -112,23 +119,15 @@ fun resolveKeyCapColors(
         }
         else -> baseColor
     }
-    val border = when {
-        isPressed -> palette.primaryAccent.copy(alpha = 0.72f)
-        isAccent -> lerp(baseColor, if (isDarkSurface) Color.White else Color.Black, 0.16f).copy(alpha = 0.55f)
-        isDarkSurface -> lerp(palette.borderSubtle, Color.White, 0.10f).copy(alpha = 0.68f)
-        else -> palette.borderSubtle.copy(alpha = 0.90f)
-    }
-    val topHighlight = when {
-        isPressed -> Color.Transparent
-        isAccent -> Color.White.copy(alpha = 0.18f)
-        isDarkSurface -> Color.White.copy(alpha = 0.07f)
-        else -> Color.White.copy(alpha = 0.55f)
-    }
+    // Flat keycaps: no outline or top bevel. A single soft bottom edge separates keys from the
+    // canvas, which reads cleaner than the previous border + highlight + rim stack.
+    val border = Color.Transparent
+    val topHighlight = Color.Transparent
     val bottomRim = when {
         isPressed -> Color.Transparent
-        isAccent -> lerp(baseColor, Color.Black, 0.30f).copy(alpha = 0.55f)
-        isDarkSurface -> Color.Black.copy(alpha = 0.36f)
-        else -> lerp(baseColor, Color.Black, 0.28f).copy(alpha = 0.22f)
+        isAccent -> lerp(baseColor, Color.Black, 0.35f).copy(alpha = 0.45f)
+        isDarkSurface -> Color.Black.copy(alpha = 0.30f)
+        else -> Color.Black.copy(alpha = 0.10f)
     }
     return KeyCapColors(
         fill = fill,
@@ -156,7 +155,7 @@ internal fun effectiveKeyCapCornerRadiusPx(
 fun KeyCapFrame(
     modifier: Modifier = Modifier,
     visualPadding: PaddingValues = PaddingValues(horizontal = 2.5.dp, vertical = 2.dp),
-    cornerRadius: Dp = 7.dp,
+    cornerRadius: Dp = ZeroConRadius.Key,
     baseColor: Color,
     isPressed: Boolean,
     isAccent: Boolean = false,
@@ -242,7 +241,13 @@ fun KeyCapFrame(
                                     }
                                 }
                             }
-                            .border(width = 0.8.dp, color = colors.border, shape = shape)
+                            .then(
+                                if (colors.border.alpha > 0f) {
+                                    Modifier.border(width = 0.8.dp, color = colors.border, shape = shape)
+                                } else {
+                                    Modifier
+                                }
+                            )
                     } else {
                         Modifier
                     }
@@ -319,7 +324,7 @@ private suspend fun AwaitPointerEventScope.awaitKeyRelease(
 fun KeyboardActionKey(
     modifier: Modifier = Modifier,
     visualPadding: PaddingValues = PaddingValues(horizontal = 2.5.dp, vertical = 2.dp),
-    cornerRadius: Dp = 7.dp,
+    cornerRadius: Dp = ZeroConRadius.Key,
     baseColor: Color,
     isAccent: Boolean = false,
     palette: ZeroConPalette = LocalZeroConPalette.current,
@@ -460,7 +465,7 @@ fun QwertyKeyPreviewBubble(
         rootHeightPx = rootHeightPx
     )
 
-    val shape = RoundedCornerShape(10.dp)
+    val shape = RoundedCornerShape(ZeroConRadius.Popup)
     Box(
         modifier = Modifier
             .fillMaxSize()
@@ -502,7 +507,7 @@ fun QwertyKeyPreviewBubble(
                             text = resolvedUpLabel,
                             color = if (isUpSelected) palette.onAccent else palette.textSecondary,
                             fontSize = if (isUpSelected) 15.sp else 13.sp,
-                            fontWeight = if (isUpSelected) FontWeight.Bold else FontWeight.SemiBold,
+                            fontWeight = FontWeight.Medium,
                             textAlign = TextAlign.Center,
                             maxLines = 1
                         )
@@ -518,7 +523,7 @@ fun QwertyKeyPreviewBubble(
                             text = label,
                             color = if (isUpSelected) palette.textMuted else palette.textPrimary,
                             fontSize = if (isUpSelected) 18.sp else 21.sp,
-                            fontWeight = if (isUpSelected) FontWeight.Medium else FontWeight.SemiBold,
+                            fontWeight = FontWeight.Medium,
                             textAlign = TextAlign.Center,
                             maxLines = 1
                         )
@@ -529,7 +534,7 @@ fun QwertyKeyPreviewBubble(
                     text = label,
                     color = palette.textPrimary,
                     fontSize = 24.sp,
-                    fontWeight = FontWeight.SemiBold,
+                    fontWeight = FontWeight.Medium,
                     textAlign = TextAlign.Center,
                     maxLines = 1
                 )

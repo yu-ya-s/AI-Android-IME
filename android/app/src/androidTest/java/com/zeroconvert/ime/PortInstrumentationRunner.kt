@@ -662,7 +662,7 @@ class PortInstrumentationRunner : Instrumentation() {
                 waitUntil("Candidates did not replace the private mode button", timeoutMs = 25_000) {
                     findText("変換候補一覧") != null && findText(privateModeLabel) == null
                 }
-                check(touchKey("◀") && touchKey("▶") && touchKey("Backspace"))
+                check(touchKey("カーソルを左へ") && touchKey("カーソルを右へ") && touchKey("Backspace"))
                 check(onUi { field.text.toString() } == "あ")
                 check(clickText("確定", 500) || clickText("Enter", 500))
                 waitUntil("Private conversion did not commit") {
@@ -728,7 +728,7 @@ class PortInstrumentationRunner : Instrumentation() {
             repeat(5) { check(clickText(key)) { "Japanese key not found" } }
             check(onUi { checkNotNull(activity).field.text.toString() } == "あああああ") { "Key taps did not enter five hiragana characters" }
             check(keyBounds() == idleKeyBounds) { "Composing text moved the real IME key: $idleKeyBounds -> ${keyBounds()}" }
-            check(touchKey("◀") && touchKey("▶")) { "Cursor keys not found" }
+            check(touchKey("カーソルを左へ") && touchKey("カーソルを右へ")) { "Cursor keys not found" }
             check(touchKey("Backspace")) { "Delete key not found" }
             check(onUi { checkNotNull(activity).field.text.toString() } == "ああああ") { "Delete did not remove one character" }
             check(clickText(key))
@@ -859,7 +859,7 @@ class PortInstrumentationRunner : Instrumentation() {
                 if (findText("QWERTY") != null) check(clickText("QWERTY"))
                 waitUntil("Japanese QWERTY unavailable") { findText("tを入力") != null }
                 for (key in "toukyouniiku") check(clickText("${key}を入力"))
-                repeat(3) { check(touchKey("◀")) }
+                repeat(3) { check(touchKey("カーソルを左へ")) }
                 waitUntil("Cursor prefix candidate Tokyo missing") { findText("変換候補 東京") != null }
                 waitUntil("Prefix preview or caret did not preserve the suffix") { onUi {
                     val field = checkNotNull(activity).field
@@ -880,7 +880,7 @@ class PortInstrumentationRunner : Instrumentation() {
                     }
                     check(findText("変換候補 東京") != null) { "Our cursor notification removed conversion candidates" }
                 }
-                check(touchKey("▶") && touchKey("◀"))
+                check(touchKey("カーソルを右へ") && touchKey("カーソルを左へ"))
                 waitUntil("Cursor prefix candidate did not return after moving right then left") {
                     findText("変換候補 東京") != null
                 }
@@ -986,7 +986,7 @@ class PortInstrumentationRunner : Instrumentation() {
                     }
                 }
                 for (step in 1 until compositionLength) {
-                    check(touchKey("◀")) { "Cursor left key missing at step $step" }
+                    check(touchKey("カーソルを左へ")) { "Cursor left key missing at step $step" }
                     val (text, caret, composingStart) = settledState()
                     check(composingStart >= 0) { "Step $step committed the composition: caret=$caret text=$text" }
                     check(text != rawReading) { "Step $step reverted the composition to raw kana: caret=$caret text=$text" }
