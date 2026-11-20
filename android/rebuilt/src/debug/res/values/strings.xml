@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Distinguishes this personal build from the official app in the launcher and keyboard picker. -->
+    <string name="app_name">ZeroCon Keyboard (Custom)</string>
+    <string name="ime_name">AI ZeroCon Keyboard (Custom)</string>
+</resources>

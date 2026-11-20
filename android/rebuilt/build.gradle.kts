@@ -28,6 +28,8 @@ android {
 
     defaultConfig {
         applicationId = "com.zeroconvert.ime"
+        // Personal build installed next to the official app, so it needs its own package ID.
+        applicationIdSuffix = ".custom"
         minSdk = requiredProperty("zerocon.minSdk").toInt()
         targetSdk = requiredProperty("zerocon.targetSdk").toInt()
         versionCode = requiredProperty("zerocon.versionCode").toInt()
