@@ -31,6 +31,7 @@ import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.DpOffset
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -1492,13 +1493,16 @@ fun FlickKeyCell(
             if (LocalShowFlickDirectionHints.current) {
                 val hintColor = textColor.copy(alpha = 0.5f)
                 val hintSize = if (isCompactKey) 8.sp else 9.sp
+                // Placed around the main label rather than at the edges, which looked scattered.
+                val dx = maxWidth * 0.3f
+                val dy = maxHeight * 0.33f
                 val hints = listOf(
-                    keyDef.up to Alignment.TopCenter,
-                    keyDef.left to Alignment.CenterStart,
-                    keyDef.right to Alignment.CenterEnd,
-                    keyDef.down to Alignment.BottomCenter
+                    keyDef.up to DpOffset(0.dp, -dy),
+                    keyDef.left to DpOffset(-dx, 0.dp),
+                    keyDef.right to DpOffset(dx, 0.dp),
+                    keyDef.down to DpOffset(0.dp, dy)
                 )
-                for ((hint, alignment) in hints) {
+                for ((hint, position) in hints) {
                     if (hint.isEmpty()) continue
                     Text(
                         text = hint,
@@ -1507,8 +1511,8 @@ fun FlickKeyCell(
                         lineHeight = hintSize,
                         maxLines = 1,
                         modifier = Modifier
-                            .align(alignment)
-                            .padding(horizontal = 5.dp, vertical = 1.dp)
+                            .align(Alignment.Center)
+                            .offset(x = position.x, y = position.y)
                     )
                 }
             }
