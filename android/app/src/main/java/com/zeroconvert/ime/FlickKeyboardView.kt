@@ -460,6 +460,7 @@ data class ActiveFlickPopupState(
 @Composable
 private fun FlickKeyboardContainer(
     palette: ZeroConPalette,
+    showDirectionHints: Boolean = false,
     content: @Composable ColumnScope.(
         getRootCoords: () -> LayoutCoordinates?,
         onFlickUpdateById: (Long, ActiveFlickPopupState?) -> Unit
@@ -483,8 +484,10 @@ private fun FlickKeyboardContainer(
             .fillMaxSize()
             .onGloballyPositioned { rootCoordinates = it }
     ) {
-        Column(modifier = Modifier.fillMaxSize()) {
-            content({ rootCoordinates }, onFlickUpdateById)
+        CompositionLocalProvider(LocalShowFlickDirectionHints provides showDirectionHints) {
+            Column(modifier = Modifier.fillMaxSize()) {
+                content({ rootCoordinates }, onFlickUpdateById)
+            }
         }
 
         // Overlay Flick Popup Guides keyed by gesture ID so multi-finger fast taps never erase another popup.
@@ -580,6 +583,7 @@ private fun ColumnScope.FlickGridRow(
 }
 
 const val SHOW_FLICK_KEY_SUBTEXT = false
+internal val LocalShowFlickDirectionHints = staticCompositionLocalOf { false }
 const val CURSOR_LEFT_DESCRIPTION = "カーソルを左へ"
 const val CURSOR_RIGHT_DESCRIPTION = "カーソルを右へ"
 
@@ -838,7 +842,12 @@ private fun Flick12KeyGrid(
     onSwitchMode: (FlickDirection) -> Unit,
     onEnter: () -> Unit
 ) {
-    FlickKeyboardContainer(palette = palette) { getRootCoords, onFlickUpdateById ->
+    // Kana flicks follow the familiar あいうえお order, but English and numeric symbols are
+    // arbitrary, so their keys show each direction's character.
+    FlickKeyboardContainer(
+        palette = palette,
+        showDirectionHints = mode != KeyboardMode.JAPANESE
+    ) { getRootCoords, onFlickUpdateById ->
         FlickGridRow(
             rowIndex = 0,
             keys = rows[0],
@@ -1479,6 +1488,30 @@ fun FlickKeyCell(
                 else -> 23.sp
             }
             val subTextSize = if (isCompactKey) 7.sp else 8.sp
+
+            if (LocalShowFlickDirectionHints.current) {
+                val hintColor = textColor.copy(alpha = 0.5f)
+                val hintSize = if (isCompactKey) 8.sp else 9.sp
+                val hints = listOf(
+                    keyDef.up to Alignment.TopCenter,
+                    keyDef.left to Alignment.CenterStart,
+                    keyDef.right to Alignment.CenterEnd,
+                    keyDef.down to Alignment.BottomCenter
+                )
+                for ((hint, alignment) in hints) {
+                    if (hint.isEmpty()) continue
+                    Text(
+                        text = hint,
+                        color = hintColor,
+                        fontSize = hintSize,
+                        lineHeight = hintSize,
+                        maxLines = 1,
+                        modifier = Modifier
+                            .align(alignment)
+                            .padding(horizontal = 5.dp, vertical = 1.dp)
+                    )
+                }
+            }
 
             Column(
                 modifier = Modifier.fillMaxSize(),
