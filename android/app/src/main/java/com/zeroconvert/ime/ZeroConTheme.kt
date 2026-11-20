@@ -83,21 +83,61 @@ val ZeroConDarkBluePalette = ZeroConPalette(
 
 val ZeroConGraphitePalette = ZeroConPalette(
     isDark = true,
-    canvas = Color(0xFF18191C),
-    surface = Color(0xFF232529),
-    surfaceElevated = Color(0xFF34373D),
-    keyNormal = Color(0xFF34373D),
-    keyModifier = Color(0xFF292B30),
-    primaryAccent = Color(0xFFC0C7D4),
-    primaryAccentSoft = Color(0xFFD1D6DF),
-    onAccent = Color(0xFF22252B),
+    // Toned down from the Windows values: the near-white accent and text glared on a phone.
+    canvas = Color(0xFF1E1F22),
+    surface = Color(0xFF26282C),
+    surfaceElevated = Color(0xFF323439),
+    keyNormal = Color(0xFF323439),
+    keyModifier = Color(0xFF292B2F),
+    primaryAccent = Color(0xFF8A919D),
+    primaryAccentSoft = Color(0xFFA3A9B3),
+    onAccent = Color(0xFF16181B),
     readyEmerald = Color(0xFF34D399),
     warningAmber = Color(0xFFFBBF24),
     danger = Color(0xFFF87171),
-    textPrimary = Color(0xFFF1F2F4),
-    textSecondary = Color(0xFFB0B4BD),
-    textMuted = Color(0xFF9EA1AA),
-    borderSubtle = Color(0xFF454951)
+    textPrimary = Color(0xFFD9DBDF),
+    textSecondary = Color(0xFFA3A7AE),
+    textMuted = Color(0xFF8E9299),
+    borderSubtle = Color(0xFF3F4247)
+)
+
+/** Warm cream and terracotta palettes in the style of Claude's interface. */
+val ZeroConClaudeDarkPalette = ZeroConPalette(
+    isDark = true,
+    canvas = Color(0xFF262624),
+    surface = Color(0xFF2B2B29),
+    surfaceElevated = Color(0xFF3A3936),
+    keyNormal = Color(0xFF3A3936),
+    keyModifier = Color(0xFF302F2D),
+    primaryAccent = Color(0xFFD97757),
+    primaryAccentSoft = Color(0xFFE39A80),
+    onAccent = Color(0xFF1F1E1D),
+    readyEmerald = Color(0xFF34D399),
+    warningAmber = Color(0xFFFBBF24),
+    danger = Color(0xFFF87171),
+    textPrimary = Color(0xFFE5E3DA),
+    textSecondary = Color(0xFFB0ADA2),
+    textMuted = Color(0xFF9A978C),
+    borderSubtle = Color(0xFF47463F)
+)
+
+val ZeroConClaudeLightPalette = ZeroConPalette(
+    isDark = false,
+    canvas = Color(0xFFF0EEE6),
+    surface = Color(0xFFFAF9F5),
+    surfaceElevated = Color(0xFFE6E3D9),
+    keyNormal = Color(0xFFFAF9F5),
+    keyModifier = Color(0xFFE3E0D5),
+    primaryAccent = Color(0xFFB85A3B),
+    primaryAccentSoft = Color(0xFFC96442),
+    onAccent = Color(0xFFFFFFFF),
+    readyEmerald = Color(0xFF047857),
+    warningAmber = Color(0xFFB45309),
+    danger = Color(0xFFB91C1C),
+    textPrimary = Color(0xFF3D3929),
+    textSecondary = Color(0xFF6B675C),
+    textMuted = Color(0xFF7A766A),
+    borderSubtle = Color(0xFFD6D2C4)
 )
 
 val ZeroConForestPalette = ZeroConPalette(
@@ -243,7 +283,9 @@ val ZeroConThemes: List<ZeroConTheme> = listOf(
     ZeroConTheme("forest", "フォレスト", ZeroConForestPalette),
     ZeroConTheme("plum", "プラム", ZeroConPlumPalette),
     ZeroConTheme("sakura", "サクラ", ZeroConSakuraPalette),
-    ZeroConTheme("paper", "ペーパー", ZeroConPaperPalette)
+    ZeroConTheme("paper", "ペーパー", ZeroConPaperPalette),
+    ZeroConTheme("claude_dark", "クロード", ZeroConClaudeDarkPalette),
+    ZeroConTheme("claude_light", "クロード（ライト）", ZeroConClaudeLightPalette)
 )
 
 fun zeroConThemeById(id: String): ZeroConTheme? = ZeroConThemes.firstOrNull { it.id == id }

@@ -10,14 +10,14 @@ import org.junit.Test
 class ThemeSelectionTest {
     @Test fun offersTheStandardPairPlusTheSixWindowsThemes() {
         assertEquals(
-            listOf("standard_dark", "standard_light", "dark_blue", "graphite", "forest", "plum", "sakura", "paper"),
+            listOf("standard_dark", "standard_light", "dark_blue", "graphite", "forest", "plum", "sakura", "paper", "claude_dark", "claude_light"),
             ZeroConThemes.map { it.id }
         )
         assertEquals(
-            listOf("スタンダード", "スタンダード（ライト）", "ダークブルー", "グラファイト", "フォレスト", "プラム", "サクラ", "ペーパー"),
+            listOf("スタンダード", "スタンダード（ライト）", "ダークブルー", "グラファイト", "フォレスト", "プラム", "サクラ", "ペーパー", "クロード", "クロード（ライト）"),
             ZeroConThemes.map { it.label }
         )
-        assertEquals(listOf(true, false, true, true, true, true, false, false), ZeroConThemes.map { it.isDark })
+        assertEquals(listOf(true, false, true, true, true, true, false, false, true, false), ZeroConThemes.map { it.isDark })
     }
 
     @Test fun standardIsTheDefaultTheme() {
