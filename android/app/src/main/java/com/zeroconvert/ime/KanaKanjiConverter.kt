@@ -137,6 +137,26 @@ class KanaKanjiConverter {
             return true
         }
 
+        /** Adds entries from an imported file in one save; returns how many were new. */
+        @Synchronized
+        fun importUserDictEntries(context: Context, entries: List<UserDictEntry>): Int {
+            ensureInitialized(context)
+            var added = 0
+            for (entry in entries) {
+                val normReading = toHiragana(entry.reading.trim())
+                val normWord = entry.word.trim()
+                if (normReading.isEmpty() || normWord.isEmpty()) continue
+                if (userDictEntries.any { it.reading == normReading && it.word == normWord }) continue
+                userDictEntries.add(UserDictEntry(normReading, normWord))
+                added++
+            }
+            if (added > 0) {
+                userDictRevision++
+                saveUserDict(context)
+            }
+            return added
+        }
+
         @Synchronized
         fun removeUserDictEntry(context: Context, entry: UserDictEntry) {
             ensureInitialized(context)

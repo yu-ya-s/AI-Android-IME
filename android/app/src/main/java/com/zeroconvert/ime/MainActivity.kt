@@ -240,6 +240,14 @@ fun MainScreen(
         if (mode != OneHandedMode.OFF) editor.putBoolean(ZeroConvertInputMethodService.KEY_SPLIT_KEYBOARD, false)
         editor.apply()
     }
+    var oneHandedWidthPercent by remember {
+        mutableStateOf(
+            imePrefs.getInt(
+                ZeroConvertInputMethodService.KEY_ONE_HANDED_WIDTH_PERCENT,
+                ZeroConvertInputMethodService.ONE_HANDED_WIDTH_DEFAULT
+            ).coerceIn(ZeroConvertInputMethodService.ONE_HANDED_WIDTH_RANGE)
+        )
+    }
     var keyboardBottomPaddingDp by remember {
         mutableStateOf(imePrefs.getInt(ZeroConvertInputMethodService.KEY_KEYBOARD_BOTTOM_PADDING_DP, 0).coerceIn(0, 32))
     }
@@ -353,6 +361,47 @@ fun MainScreen(
     }
 
     var userDictList by remember { mutableStateOf<List<UserDictEntry>>(emptyList()) }
+    // Backup so the dictionary survives reinstalling the app or changing phones.
+    val exportDictLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.CreateDocument(UserDictionaryFile.MIME_TYPE)
+    ) { uri ->
+        if (uri == null) return@rememberLauncherForActivityResult
+        val entries = userDictList
+        coroutineScope.launch {
+            val saved = withContext(Dispatchers.IO) {
+                runCatching {
+                    context.contentResolver.openOutputStream(uri)?.use { stream ->
+                        stream.write(UserDictionaryFile.encode(entries).toByteArray(Charsets.UTF_8))
+                    } != null
+                }.getOrDefault(false)
+            }
+            Toast.makeText(
+                context,
+                if (saved) "${entries.size}件を書き出しました" else "書き出しに失敗しました",
+                Toast.LENGTH_SHORT
+            ).show()
+        }
+    }
+    val importDictLauncher = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
+        if (uri == null) return@rememberLauncherForActivityResult
+        coroutineScope.launch {
+            val result = withContext(Dispatchers.IO) {
+                runCatching {
+                    val text = context.contentResolver.openInputStream(uri)?.use {
+                        it.readBytes().toString(Charsets.UTF_8)
+                    } ?: return@runCatching null
+                    val added = KanaKanjiConverter.importUserDictEntries(context, UserDictionaryFile.decode(text))
+                    added to KanaKanjiConverter.getUserDictionary(context)
+                }.getOrNull()
+            }
+            if (result != null) userDictList = result.second
+            Toast.makeText(
+                context,
+                if (result != null) "${result.first}件を追加しました" else "読み込みに失敗しました",
+                Toast.LENGTH_SHORT
+            ).show()
+        }
+    }
     var newDictReading by remember { mutableStateOf("") }
     var newDictWord by remember { mutableStateOf("") }
     var learningCount by remember { mutableStateOf(0) }
@@ -662,16 +711,17 @@ fun MainScreen(
                                         } else {
                                             Row(modifier = Modifier.fillMaxSize()) {
                                                 // Matches the keyboard: the unused side is left empty.
+                                                val keysWeight = oneHandedWidthPercent / 100f
                                                 if (oneHandedMode == OneHandedMode.RIGHT) {
-                                                    Spacer(modifier = Modifier.weight(0.18f).fillMaxHeight())
-                                                    Box(modifier = Modifier.weight(0.82f).fillMaxHeight()) {
+                                                    Spacer(modifier = Modifier.weight(1f - keysWeight).fillMaxHeight())
+                                                    Box(modifier = Modifier.weight(keysWeight).fillMaxHeight()) {
                                                         previewKeyboardBody()
                                                     }
                                                 } else {
-                                                    Box(modifier = Modifier.weight(0.82f).fillMaxHeight()) {
+                                                    Box(modifier = Modifier.weight(keysWeight).fillMaxHeight()) {
                                                         previewKeyboardBody()
                                                     }
-                                                    Spacer(modifier = Modifier.weight(0.18f).fillMaxHeight())
+                                                    Spacer(modifier = Modifier.weight(1f - keysWeight).fillMaxHeight())
                                                 }
                                             }
                                         }
@@ -818,6 +868,52 @@ fun MainScreen(
                 )
                 Text(
                     text = "画面下端のベゼルやジェスチャーバーと最下段キーの間に余白を設け、指を届きやすくします（標準: 0 dp）。",
+                    color = palette.textMuted,
+                    fontSize = 12.sp
+                )
+            }
+            SettingsDivider(palette)
+            Column(
+                modifier = Modifier.padding(16.dp),
+                verticalArrangement = Arrangement.spacedBy(6.dp)
+            ) {
+                val widthRange = ZeroConvertInputMethodService.ONE_HANDED_WIDTH_RANGE
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = "片手モードの横幅",
+                        color = palette.textPrimary,
+                        fontSize = 14.sp,
+                        fontWeight = FontWeight.Medium
+                    )
+                    Text(
+                        text = "${oneHandedWidthPercent} %",
+                        color = palette.primaryAccentSoft,
+                        fontSize = 13.sp,
+                        fontWeight = FontWeight.SemiBold
+                    )
+                }
+                Slider(
+                    value = oneHandedWidthPercent.toFloat(),
+                    onValueChange = { value ->
+                        oneHandedWidthPercent = value.toInt().coerceIn(widthRange)
+                        imePrefs.edit()
+                            .putInt(ZeroConvertInputMethodService.KEY_ONE_HANDED_WIDTH_PERCENT, oneHandedWidthPercent)
+                            .apply()
+                    },
+                    valueRange = widthRange.first.toFloat()..widthRange.last.toFloat(),
+                    steps = widthRange.last - widthRange.first - 1,
+                    colors = SliderDefaults.colors(
+                        thumbColor = palette.primaryAccent,
+                        activeTrackColor = palette.primaryAccent,
+                        inactiveTrackColor = palette.surfaceElevated
+                    )
+                )
+                Text(
+                    text = "片手モードで画面幅のどれだけをキーに使うかを決めます。12キーのときだけ効きます（標準: ${ZeroConvertInputMethodService.ONE_HANDED_WIDTH_DEFAULT} %）。",
                     color = palette.textMuted,
                     fontSize = 12.sp
                 )
@@ -1372,6 +1468,17 @@ fun MainScreen(
                         fontSize = 12.sp,
                         fontWeight = FontWeight.SemiBold
                     )
+                    Row {
+                        TextButton(onClick = { importDictLauncher.launch(arrayOf("text/*")) }) {
+                            Text("読み込む", fontSize = 12.sp)
+                        }
+                        TextButton(
+                            onClick = { exportDictLauncher.launch(UserDictionaryFile.DEFAULT_FILE_NAME) },
+                            enabled = userDictList.isNotEmpty()
+                        ) {
+                            Text("書き出す", fontSize = 12.sp)
+                        }
+                    }
                 }
                 Text(
                     text = "よく使う固有名詞や専門用語を登録すると、候補バーの上位に表示されます。",

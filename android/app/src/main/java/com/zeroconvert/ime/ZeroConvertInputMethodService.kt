@@ -117,6 +117,9 @@ class ZeroConvertInputMethodService : InputMethodService(),
         const val KEY_SPLIT_GAP_PERCENT = "split_keyboard_gap_percent"
         const val KEY_SPLIT_DUPLICATE_KEYS = "split_keyboard_duplicate_keys"
         const val KEY_KEYBOARD_BOTTOM_PADDING_DP = "keyboard_bottom_padding_dp" // int dp (0..32), default 0
+        const val KEY_ONE_HANDED_WIDTH_PERCENT = "one_handed_width_percent" // int % of width
+        const val ONE_HANDED_WIDTH_DEFAULT = 82
+        val ONE_HANDED_WIDTH_RANGE = 60..95
         const val KEY_DYNAMIC_TOUCH_ASSIST = TouchAssistSettings.KEY_HIT_AREA // predictive hit area, default true
         const val KEY_TOUCH_TYPO_CORRECTION = TouchAssistSettings.KEY_CORRECTION // independent; inherits old setting once
         const val KEY_EXPERIMENTAL_AI_ASSIST = "experimental_ai_assist" // boolean, default true
@@ -211,6 +214,7 @@ class ZeroConvertInputMethodService : InputMethodService(),
     val splitGapPercentState = mutableIntStateOf(QwertySplitLayout.DEFAULT_GAP_PERCENT)
     val splitDuplicateKeysState = mutableStateOf(QwertySplitLayout.DEFAULT_DUPLICATE_MIDDLE_KEYS)
     val keyboardBottomPaddingDpState = mutableStateOf(0)
+    val oneHandedWidthPercentState = mutableStateOf(ONE_HANDED_WIDTH_DEFAULT)
     private val floatingKeyboard by lazy {
         FloatingKeyboardState(getSharedPreferences("keyboard_placement", Context.MODE_PRIVATE))
     }
@@ -1572,6 +1576,8 @@ class ZeroConvertInputMethodService : InputMethodService(),
         isKeyBordersEnabledState.value = prefs.getBoolean(KEY_KEY_BORDERS_ENABLED, true)
         loadKeyboardPlacementPreferences(prefs)
         keyboardBottomPaddingDpState.value = prefs.getInt(KEY_KEYBOARD_BOTTOM_PADDING_DP, 0).coerceIn(0, 32)
+        oneHandedWidthPercentState.value = prefs.getInt(KEY_ONE_HANDED_WIDTH_PERCENT, ONE_HANDED_WIDTH_DEFAULT)
+            .coerceIn(ONE_HANDED_WIDTH_RANGE)
         val touchAssist = TouchAssistSettings.load(prefs)
         val touchCorrectionChanged = isTouchTypoCorrectionEnabledState.value != touchAssist.correctionEnabled
         isDynamicTouchAssistEnabledState.value = touchAssist.hitAreaEnabled
@@ -2659,6 +2665,38 @@ class ZeroConvertInputMethodService : InputMethodService(),
     fun showInputMethodPicker() {
         val imm = getSystemService(Context.INPUT_METHOD_SERVICE) as? android.view.inputmethod.InputMethodManager
         imm?.showInputMethodPicker()
+    }
+
+    /** True when an enabled voice input (such as Google voice typing) exists to switch to. */
+    val voiceInputAvailableState = mutableStateOf(false)
+
+    private fun findVoiceInput(): Pair<String, android.view.inputmethod.InputMethodSubtype>? {
+        val imm = getSystemService(Context.INPUT_METHOD_SERVICE) as? android.view.inputmethod.InputMethodManager
+            ?: return null
+        for (info in imm.enabledInputMethodList) {
+            if (info.packageName == packageName) continue
+            val subtype = imm.getEnabledInputMethodSubtypeList(info, true).firstOrNull { it.mode == "voice" }
+            if (subtype != null) return info.id to subtype
+        }
+        return null
+    }
+
+    /** Hands input to the voice IME; it returns to this keyboard when the user finishes. */
+    fun startVoiceInput() {
+        val (id, subtype) = findVoiceInput() ?: run {
+            voiceInputAvailableState.value = false
+            Toast.makeText(this, "有効な音声入力が見つかりません", Toast.LENGTH_SHORT).show()
+            return
+        }
+        if (!composingText.isEmpty) confirmCurrent()
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+            switchInputMethod(id, subtype)
+        } else {
+            val token = window.window?.attributes?.token ?: return
+            @Suppress("DEPRECATION")
+            (getSystemService(Context.INPUT_METHOD_SERVICE) as android.view.inputmethod.InputMethodManager)
+                .setInputMethodAndSubtype(token, id, subtype)
+        }
     }
 
     private fun triggerDebouncedConversion(
@@ -4013,6 +4051,7 @@ class ZeroConvertInputMethodService : InputMethodService(),
         clearInput()
         undoHistory.clear()
         applyInputTypeMode(info)
+        voiceInputAvailableState.value = findVoiceInput() != null
         inputViewEpochState.value++
         hasSelectionInEditor = info != null && info.initialSelStart >= 0 && info.initialSelStart != info.initialSelEnd
         selectionAvailableState.value = hasSelectionInEditor

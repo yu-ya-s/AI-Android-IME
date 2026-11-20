@@ -586,16 +586,17 @@ fun KeyboardRootView(
                         .height(keyboardContentHeight(keyHeight, keyRowCount) + contentExtraHeight)
                 ) {
                     // The full-width and flip buttons live in the toolbar; the side stays empty.
+                    val keysWeight = imeService.oneHandedWidthPercentState.value / 100f
                     if (oneHandedMode == OneHandedMode.RIGHT) {
-                        Spacer(modifier = Modifier.weight(0.18f).fillMaxHeight())
-                        Box(modifier = Modifier.weight(0.82f).fillMaxHeight()) {
+                        Spacer(modifier = Modifier.weight(1f - keysWeight).fillMaxHeight())
+                        Box(modifier = Modifier.weight(keysWeight).fillMaxHeight()) {
                             contentAreaBlock()
                         }
                     } else {
-                        Box(modifier = Modifier.weight(0.82f).fillMaxHeight()) {
+                        Box(modifier = Modifier.weight(keysWeight).fillMaxHeight()) {
                             contentAreaBlock()
                         }
-                        Spacer(modifier = Modifier.weight(0.18f).fillMaxHeight())
+                        Spacer(modifier = Modifier.weight(1f - keysWeight).fillMaxHeight())
                     }
                 }
             } else {
@@ -948,6 +949,17 @@ private fun KeyboardTopBars(
                                 modifier = Modifier.size(20.dp)
                             )
                         }
+                    }
+
+                    if (barPolicy.mode == CandidateBarContentMode.IDLE_TOOLBAR && !privateMode &&
+                        imeService.voiceInputAvailableState.value
+                    ) {
+                        ToolbarIconButton(
+                            icon = Icons.Default.Mic,
+                            description = "音声入力",
+                            tint = palette.textSecondary,
+                            onClick = { imeService.startVoiceInput() }
+                        )
                     }
 
                     if (barPolicy.mode == CandidateBarContentMode.IDLE_TOOLBAR && !privateMode) {
