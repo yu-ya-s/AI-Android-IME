@@ -8,6 +8,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Undo
 import androidx.compose.material.icons.automirrored.filled.ArrowLeft
 import androidx.compose.material.icons.automirrored.filled.ArrowRight
+import androidx.compose.material.icons.automirrored.filled.KeyboardReturn
 import androidx.compose.material.icons.automirrored.outlined.Backspace
 import androidx.compose.material.icons.filled.SpaceBar
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -714,13 +715,16 @@ private fun FlickSideEnterButton(
         cornerRadius = ZeroConRadius.Pill,
         baseColor = palette.primaryAccent,
         isAccent = true,
+        // The label stays "確定" for accessibility and UI tests; the key shows the return arrow
+        // like the QWERTY enter key and the stock keyboard.
+        contentDescription = "確定",
         onClick = onEnter
     ) {
-        Text(
-            text = "確定",
-            color = palette.onAccent,
-            fontSize = 15.sp,
-            fontWeight = FontWeight.Medium
+        Icon(
+            imageVector = Icons.AutoMirrored.Filled.KeyboardReturn,
+            contentDescription = null,
+            tint = palette.onAccent,
+            modifier = Modifier.size(24.dp)
         )
     }
 }

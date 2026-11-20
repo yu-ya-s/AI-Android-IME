@@ -2255,7 +2255,7 @@ private fun SharedQwertyLayout(
                     KeyboardActionKey(
                         modifier = Modifier.weight(1.35f).fillMaxHeight(),
                         visualPadding = qwertyRowPadding(false, true, isFirst = false, isLast = true),
-                        cornerRadius = 22.dp,
+                        cornerRadius = ZeroConRadius.Pill,
                         baseColor = palette.primaryAccent,
                         isAccent = true,
                         onBeforePress = flushBeforeAction,
