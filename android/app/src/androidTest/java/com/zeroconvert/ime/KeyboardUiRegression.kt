@@ -684,7 +684,11 @@ class KeyboardUiRegression(private val instrumentation: Instrumentation) {
             test("flick_12key_common_keys_keep_same_positions_across_modes") {
                 fun captureSidePositions(mode: KeyboardMode): List<Rect> {
                     update(Case(flick = true, flickMode = mode))
-                    val emojiOrSymbols = if (mode == KeyboardMode.NUMERIC) "記号" else "絵文字・記号"
+                    val emojiOrSymbols = when (mode) {
+                        KeyboardMode.NUMERIC -> "記号"
+                        KeyboardMode.JAPANESE -> "英語に切り替え"
+                        KeyboardMode.ENGLISH -> "日本語に切り替え"
+                    }
                     return listOf(
                         bounds("元に戻す"),
                         bounds("カーソルを左へ"),

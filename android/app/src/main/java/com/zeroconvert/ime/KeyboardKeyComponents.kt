@@ -67,9 +67,11 @@ import kotlin.math.roundToInt
 
 /** Shared corner radii so keys, chips, and popups use one visual language. */
 object ZeroConRadius {
-    val Key: Dp = 6.dp
+    val Key: Dp = 5.dp
     val Chip: Dp = 6.dp
     val Popup: Dp = 8.dp
+    /** Clamped to half the key height by RoundedCornerShape, giving a capsule. */
+    val Pill: Dp = 100.dp
 }
 
 /** Invoked strictly on initial pointer-down for press-only haptic feedback. */
@@ -123,12 +125,8 @@ fun resolveKeyCapColors(
     // canvas, which reads cleaner than the previous border + highlight + rim stack.
     val border = Color.Transparent
     val topHighlight = Color.Transparent
-    val bottomRim = when {
-        isPressed -> Color.Transparent
-        isAccent -> lerp(baseColor, Color.Black, 0.35f).copy(alpha = 0.45f)
-        isDarkSurface -> Color.Black.copy(alpha = 0.30f)
-        else -> Color.Black.copy(alpha = 0.10f)
-    }
+    // Stock-keyboard flat look: colour alone separates keys, so no rim either.
+    val bottomRim = Color.Transparent
     return KeyCapColors(
         fill = fill,
         border = border,

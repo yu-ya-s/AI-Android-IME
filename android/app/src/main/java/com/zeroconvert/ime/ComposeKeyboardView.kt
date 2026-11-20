@@ -16,10 +16,11 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.KeyboardArrowLeft
-import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
+import androidx.compose.material.icons.automirrored.filled.ArrowLeft
+import androidx.compose.material.icons.automirrored.filled.ArrowRight
 import androidx.compose.material.icons.automirrored.filled.Undo
 import androidx.compose.material.icons.filled.*
+import androidx.compose.material.icons.outlined.Mood
 import androidx.compose.material.icons.outlined.Settings
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -904,6 +905,25 @@ private fun KeyboardTopBars(
                         }
                     }
 
+                    if (barPolicy.mode == CandidateBarContentMode.IDLE_TOOLBAR) {
+                        Box(
+                            modifier = Modifier
+                                .size(36.dp)
+                                .clip(RoundedCornerShape(ZeroConRadius.Chip))
+                                .semantics { contentDescription = "絵文字" }
+                                .pointerDownHaptic()
+                                .clickable { onActiveTabChange(KeyboardTab.EMOJI) },
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(
+                                imageVector = Icons.Outlined.Mood,
+                                contentDescription = null,
+                                tint = palette.textSecondary,
+                                modifier = Modifier.size(20.dp)
+                            )
+                        }
+                    }
+
                     if (barPolicy.mode == CandidateBarContentMode.IDLE_TOOLBAR && !privateMode) {
                         Box(
                             modifier = Modifier
@@ -1412,7 +1432,7 @@ fun Aa1Button(
         mode = mode,
         modifier = modifier.then(heightModifier),
         visualPadding = resolvedPadding,
-        cornerRadius = if (matchEnterStyle) 22.dp else ZeroConRadius.Key,
+        cornerRadius = if (matchEnterStyle || fillAvailableHeight) ZeroConRadius.Pill else ZeroConRadius.Key,
         baseColor = actionKeyBg,
         palette = palette,
         contentDescription = "入力モード:" + mode.label,
@@ -2214,7 +2234,7 @@ private fun SharedQwertyLayout(
                         onBeforePress = flushBeforeAction,
                         hapticOnPress = false
                     ) {
-                        Icon(imageVector = Icons.AutoMirrored.Filled.KeyboardArrowLeft, contentDescription = CURSOR_LEFT_DESCRIPTION, tint = textColor, modifier = Modifier.size(26.dp))
+                        Icon(imageVector = Icons.AutoMirrored.Filled.ArrowLeft, contentDescription = CURSOR_LEFT_DESCRIPTION, tint = textColor, modifier = Modifier.size(30.dp))
                     }
 
                     RepeatingIconButton(
@@ -2229,7 +2249,7 @@ private fun SharedQwertyLayout(
                         onBeforePress = flushBeforeAction,
                         hapticOnPress = false
                     ) {
-                        Icon(imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight, contentDescription = CURSOR_RIGHT_DESCRIPTION, tint = textColor, modifier = Modifier.size(26.dp))
+                        Icon(imageVector = Icons.AutoMirrored.Filled.ArrowRight, contentDescription = CURSOR_RIGHT_DESCRIPTION, tint = textColor, modifier = Modifier.size(30.dp))
                     }
 
                     KeyboardActionKey(
@@ -2451,7 +2471,7 @@ fun NumericPadLayout(
                 repeatIntervalMs = 50L,
                 hapticOnPress = false
             ) {
-                Icon(imageVector = Icons.AutoMirrored.Filled.KeyboardArrowLeft, contentDescription = CURSOR_LEFT_DESCRIPTION, tint = textColor, modifier = Modifier.size(26.dp))
+                Icon(imageVector = Icons.AutoMirrored.Filled.ArrowLeft, contentDescription = CURSOR_LEFT_DESCRIPTION, tint = textColor, modifier = Modifier.size(30.dp))
             }
             NumericKeyButton("4", "○*・", Modifier.weight(1.1f), padFor(1, false, false), keyBgColor, textColor, palette = palette) { onCommitText("4") }
             NumericKeyButton("5", "+×÷", Modifier.weight(1.1f), padFor(1, false, false), keyBgColor, textColor, palette = palette) { onCommitText("5") }
@@ -2467,7 +2487,7 @@ fun NumericPadLayout(
                 repeatIntervalMs = 50L,
                 hapticOnPress = false
             ) {
-                Icon(imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight, contentDescription = CURSOR_RIGHT_DESCRIPTION, tint = textColor, modifier = Modifier.size(26.dp))
+                Icon(imageVector = Icons.AutoMirrored.Filled.ArrowRight, contentDescription = CURSOR_RIGHT_DESCRIPTION, tint = textColor, modifier = Modifier.size(30.dp))
             }
         }
 
@@ -3719,7 +3739,7 @@ fun SymbolsPanel(
                 repeatIntervalMs = 50L,
                 hapticOnPress = false
             ) {
-                Icon(imageVector = Icons.AutoMirrored.Filled.KeyboardArrowLeft, contentDescription = CURSOR_LEFT_DESCRIPTION, tint = textColor, modifier = Modifier.size(26.dp))
+                Icon(imageVector = Icons.AutoMirrored.Filled.ArrowLeft, contentDescription = CURSOR_LEFT_DESCRIPTION, tint = textColor, modifier = Modifier.size(30.dp))
             }
 
             // 7. ▶
@@ -3734,7 +3754,7 @@ fun SymbolsPanel(
                 repeatIntervalMs = 50L,
                 hapticOnPress = false
             ) {
-                Icon(imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight, contentDescription = CURSOR_RIGHT_DESCRIPTION, tint = textColor, modifier = Modifier.size(26.dp))
+                Icon(imageVector = Icons.AutoMirrored.Filled.ArrowRight, contentDescription = CURSOR_RIGHT_DESCRIPTION, tint = textColor, modifier = Modifier.size(30.dp))
             }
 
             // 8. Backspace with hold-to-repeat

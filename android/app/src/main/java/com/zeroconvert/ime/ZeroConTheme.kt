@@ -179,18 +179,65 @@ val ZeroConPaperPalette = ZeroConPalette(
     borderSubtle = Color(0xFFD3CBB7)
 )
 
+/**
+ * Android-only "standard" palettes modelled on the stock Android keyboard look: neutral
+ * grey keys on a slightly darker canvas, a blue enter key, and no decoration.
+ */
+val ZeroConStandardDarkPalette = ZeroConPalette(
+    isDark = true,
+    canvas = Color(0xFF292E32),
+    surface = Color(0xFF292E32),
+    surfaceElevated = Color(0xFF3C4145),
+    keyNormal = Color(0xFF484C4F),
+    keyModifier = Color(0xFF373C40),
+    primaryAccent = Color(0xFF5F97F6),
+    primaryAccentSoft = Color(0xFF8AB4F8),
+    onAccent = Color(0xFF0A1A33),
+    readyEmerald = Color(0xFF34D399),
+    warningAmber = Color(0xFFFBBF24),
+    danger = Color(0xFFF28B82),
+    textPrimary = Color(0xFFE8EAED),
+    textSecondary = Color(0xFFBDC1C6),
+    textMuted = Color(0xFF9AA0A6),
+    borderSubtle = Color(0xFF4A4F53)
+)
+
+val ZeroConStandardLightPalette = ZeroConPalette(
+    isDark = false,
+    canvas = Color(0xFFE8EAED),
+    surface = Color(0xFFE8EAED),
+    surfaceElevated = Color(0xFFF8F9FA),
+    keyNormal = Color(0xFFFFFFFF),
+    keyModifier = Color(0xFFD3D7DB),
+    primaryAccent = Color(0xFF1A73E8),
+    primaryAccentSoft = Color(0xFF1967D2),
+    onAccent = Color(0xFFFFFFFF),
+    readyEmerald = Color(0xFF047857),
+    warningAmber = Color(0xFFB45309),
+    danger = Color(0xFFB91C1C),
+    textPrimary = Color(0xFF202124),
+    textSecondary = Color(0xFF5F6368),
+    textMuted = Color(0xFF6B7075),
+    borderSubtle = Color(0xFFC4C7CA)
+)
+
 /** Kept for callers that only need the default dark palette. */
-val ZeroConDarkPalette = ZeroConGraphitePalette
+val ZeroConDarkPalette = ZeroConStandardDarkPalette
 
 /** Kept for callers that only need the default light palette. */
-val ZeroConLightPalette = ZeroConPaperPalette
+val ZeroConLightPalette = ZeroConStandardLightPalette
 
 const val ZERO_CON_THEME_SYSTEM = "system"
-const val ZERO_CON_THEME_DEFAULT_DARK = "graphite"
-const val ZERO_CON_THEME_DEFAULT_LIGHT = "paper"
+const val ZERO_CON_THEME_DEFAULT_DARK = "standard_dark"
+const val ZERO_CON_THEME_DEFAULT_LIGHT = "standard_light"
 
-/** Selectable themes in display order: four dark palettes, then two light ones. */
+/**
+ * Selectable themes in display order: the Android-only standard pair first, then the six
+ * palettes shared with the Windows settings (four dark, two light).
+ */
 val ZeroConThemes: List<ZeroConTheme> = listOf(
+    ZeroConTheme("standard_dark", "スタンダード", ZeroConStandardDarkPalette),
+    ZeroConTheme("standard_light", "スタンダード（ライト）", ZeroConStandardLightPalette),
     ZeroConTheme("dark_blue", "ダークブルー", ZeroConDarkBluePalette),
     ZeroConTheme("graphite", "グラファイト", ZeroConGraphitePalette),
     ZeroConTheme("forest", "フォレスト", ZeroConForestPalette),

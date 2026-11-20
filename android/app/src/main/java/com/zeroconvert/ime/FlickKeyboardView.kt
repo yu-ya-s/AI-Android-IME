@@ -6,11 +6,10 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Undo
-import androidx.compose.material.icons.automirrored.filled.KeyboardArrowLeft
-import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
+import androidx.compose.material.icons.automirrored.filled.ArrowLeft
+import androidx.compose.material.icons.automirrored.filled.ArrowRight
 import androidx.compose.material.icons.automirrored.outlined.Backspace
 import androidx.compose.material.icons.filled.SpaceBar
-import androidx.compose.material.icons.outlined.Mood
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Surface
@@ -579,6 +578,7 @@ private fun ColumnScope.FlickGridRow(
     }
 }
 
+const val SHOW_FLICK_KEY_SUBTEXT = false
 const val CURSOR_LEFT_DESCRIPTION = "カーソルを左へ"
 const val CURSOR_RIGHT_DESCRIPTION = "カーソルを右へ"
 
@@ -639,38 +639,65 @@ private fun FlickSideSymbolsButton(
     }
 }
 
+/**
+ * Japanese ⇄ English toggle in the left column. Tap switches language directly; the emoji and
+ * symbol panels that used to live on this key stay reachable by flicking up (emoji) or right
+ * (symbols), and the toolbar also has an emoji button.
+ */
 @Composable
-private fun FlickSideEmojiSymbolsButton(
+private fun FlickSideLanguageToggleButton(
+    mode: KeyboardMode,
     modifier: Modifier,
     visualPadding: PaddingValues,
     actionKeyBg: Color,
-    textColor: Color,
     palette: ZeroConPalette,
+    onSwitchMode: (FlickDirection) -> Unit,
     onOpenEmoji: () -> Unit,
     onOpenSymbols: () -> Unit
 ) {
+    val toggle = {
+        // KeyboardMode order is JAPANESE → ENGLISH → NUMERIC: CENTER steps forward, UP back.
+        if (mode == KeyboardMode.ENGLISH) onSwitchMode(FlickDirection.UP)
+        else onSwitchMode(FlickDirection.CENTER)
+    }
+    val isJapanese = mode == KeyboardMode.JAPANESE
+    val active = palette.textPrimary
+    val dim = palette.textMuted.copy(alpha = 0.72f)
     KeyboardActionKey(
         modifier = modifier,
         visualPadding = visualPadding,
         cornerRadius = ZeroConRadius.Key,
         baseColor = actionKeyBg,
         palette = palette,
-        contentDescription = "絵文字・記号",
+        contentDescription = if (isJapanese) "英語に切り替え" else "日本語に切り替え",
         onFlick = { direction ->
             when (direction) {
-                FlickDirection.UP, FlickDirection.RIGHT -> onOpenSymbols()
-                FlickDirection.CENTER -> onOpenEmoji()
+                FlickDirection.CENTER -> toggle()
+                FlickDirection.UP -> onOpenEmoji()
+                FlickDirection.RIGHT -> onOpenSymbols()
                 FlickDirection.LEFT, FlickDirection.DOWN -> Unit
             }
         },
-        onClick = onOpenEmoji
+        onClick = toggle
     ) {
-        Icon(
-            imageVector = Icons.Outlined.Mood,
-            contentDescription = null,
-            tint = textColor,
-            modifier = Modifier.size(22.dp)
-        )
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.Center
+        ) {
+            Text(
+                text = "あ",
+                color = if (isJapanese) active else dim,
+                fontSize = if (isJapanese) 17.sp else 14.sp,
+                fontWeight = if (isJapanese) FontWeight.Medium else FontWeight.Normal
+            )
+            Text(text = "/", color = dim, fontSize = 13.sp, modifier = Modifier.padding(horizontal = 2.dp))
+            Text(
+                text = "A",
+                color = if (isJapanese) dim else active,
+                fontSize = if (isJapanese) 14.sp else 17.sp,
+                fontWeight = if (isJapanese) FontWeight.Normal else FontWeight.Medium
+            )
+        }
     }
 }
 
@@ -684,7 +711,7 @@ private fun FlickSideEnterButton(
     KeyboardActionKey(
         modifier = modifier,
         visualPadding = visualPadding,
-        cornerRadius = ZeroConRadius.Key,
+        cornerRadius = ZeroConRadius.Pill,
         baseColor = palette.primaryAccent,
         isAccent = true,
         onClick = onEnter
@@ -773,7 +800,7 @@ private fun FlickSideCursorButton(
             imageVector = icon,
             contentDescription = description,
             tint = textColor,
-            modifier = Modifier.size(28.dp)
+            modifier = Modifier.size(30.dp)
         )
     }
 }
@@ -781,7 +808,7 @@ private fun FlickSideCursorButton(
 /**
  * Shared 5x4 12-key grid keeping common utility keys in identical positions across
  * Japanese, English, and Numeric modes (following Gboard's 12-key layout):
- * Left column:  [Undo (↶)] [‹] [☺ / !?#] [あa1]
+ * Left column:  [Undo (↶)] [◀] [あ/A toggle, or !?# in numeric] [あa1]
  * Right column: [Backspace] [›] [space] [確定]
  */
 @Composable
@@ -832,8 +859,8 @@ private fun Flick12KeyGrid(
             getRootCoords = getRootCoords,
             onFlickUpdateById = onFlickUpdateById,
             onFlickComplete = onFlickComplete,
-            leftKey = { mod, pad -> FlickSideCursorButton(Icons.AutoMirrored.Filled.KeyboardArrowLeft, CURSOR_LEFT_DESCRIPTION, mod, pad, actionKeyBg, textColor, palette, onCursorLeft) },
-            rightKey = { mod, pad -> FlickSideCursorButton(Icons.AutoMirrored.Filled.KeyboardArrowRight, CURSOR_RIGHT_DESCRIPTION, mod, pad, actionKeyBg, textColor, palette, onCursorRight) }
+            leftKey = { mod, pad -> FlickSideCursorButton(Icons.AutoMirrored.Filled.ArrowLeft, CURSOR_LEFT_DESCRIPTION, mod, pad, actionKeyBg, textColor, palette, onCursorLeft) },
+            rightKey = { mod, pad -> FlickSideCursorButton(Icons.AutoMirrored.Filled.ArrowRight, CURSOR_RIGHT_DESCRIPTION, mod, pad, actionKeyBg, textColor, palette, onCursorRight) }
         )
 
         FlickGridRow(
@@ -850,7 +877,16 @@ private fun Flick12KeyGrid(
                 if (mode == KeyboardMode.NUMERIC) {
                     FlickSideSymbolsButton(mod, pad, actionKeyBg, textColor, palette, onOpenSymbols, onOpenEmoji)
                 } else {
-                    FlickSideEmojiSymbolsButton(mod, pad, actionKeyBg, textColor, palette, onOpenEmoji, onOpenSymbols)
+                    FlickSideLanguageToggleButton(
+                        mode = mode,
+                        modifier = mod,
+                        visualPadding = pad,
+                        actionKeyBg = actionKeyBg,
+                        palette = palette,
+                        onSwitchMode = onSwitchMode,
+                        onOpenEmoji = onOpenEmoji,
+                        onOpenSymbols = onOpenSymbols
+                    )
                 }
             },
             rightKey = { mod, pad -> FlickSideSpaceButton(mod, pad, actionKeyBg, textColor, onSpace, onLongPressSpace) }
@@ -1435,8 +1471,8 @@ fun FlickKeyCell(
             val mainTextSize = when {
                 keyDef.label.length > 2 && isCompactKey -> 12.sp
                 keyDef.label.length > 2 -> 14.sp
-                isCompactKey -> 18.sp
-                else -> 21.sp
+                isCompactKey -> 20.sp
+                else -> 23.sp
             }
             val subTextSize = if (isCompactKey) 7.sp else 8.sp
 
@@ -1451,7 +1487,8 @@ fun FlickKeyCell(
                     fontSize = mainTextSize,
                     fontWeight = FontWeight.Normal
                 )
-                if (keyDef.subText.isNotEmpty()) {
+                // The stock keyboard shows only the main kana; flick targets appear in the popup.
+                if (SHOW_FLICK_KEY_SUBTEXT && keyDef.subText.isNotEmpty()) {
                     Text(
                         // Hint row stays available but recedes so the main kana leads.
                         text = keyDef.subText,
