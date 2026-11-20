@@ -1,0 +1,110 @@
+# Personal build of the Android keyboard (package com.zeroconvert.ime.custom).
+#
+# Every day it takes the latest upstream release into the custom branch, builds the APK with
+# the official native engine and models from that release (scripts/custom/use-official-native.sh),
+# and publishes it as a release of this fork so an updater app on the phone can pick it up.
+#
+# Setup (once, in this fork):
+#   - Actions enabled, and the default branch set to custom-keyboard-ui (schedules only run there).
+#   - Secret DEBUG_KEYSTORE_BASE64 = base64 of the debug.keystore that signed the installed app.
+#     Updates only install over the existing app when every build uses this same key.
+#
+# A merge conflict, or an upstream change to .github/workflows (which the workflow token may
+# not push), stops the run; resolve it by hand and push.
+name: Custom Android build
+
+on:
+  schedule:
+    - cron: "0 21 * * *" # 06:00 JST
+  workflow_dispatch:
+  push:
+    branches: [custom-keyboard-ui]
+
+permissions:
+  contents: write
+
+concurrency:
+  group: custom-android-build
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    env:
+      GH_TOKEN: ${{ github.token }}
+      UPSTREAM: g0083/ZeroConvert-IME
+      BRANCH: custom-keyboard-ui
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: custom-keyboard-ui
+          fetch-depth: 0
+
+      - name: Take in the latest upstream release
+        id: base
+        run: |
+          tag=$(gh release view -R "$UPSTREAM" --json tagName -q .tagName)
+          git fetch --no-tags "https://github.com/$UPSTREAM.git" "refs/tags/$tag:refs/tags/$tag"
+          if ! git merge-base --is-ancestor "$tag" HEAD; then
+            git config user.name "github-actions[bot]"
+            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git merge --no-edit "$tag"
+            git push origin "HEAD:$BRANCH"
+          fi
+          echo "tag=$tag" >> "$GITHUB_OUTPUT"
+          echo "release=$tag-custom-$(git rev-parse --short HEAD)" >> "$GITHUB_OUTPUT"
+
+      - name: Skip when this commit is already released
+        id: check
+        env:
+          RELEASE: ${{ steps.base.outputs.release }}
+        run: |
+          if gh release view "$RELEASE" -R "$GITHUB_REPOSITORY" > /dev/null 2>&1; then
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+            echo "$RELEASE is already published."
+          fi
+
+      - name: Restore the signing key
+        if: steps.check.outputs.skip != 'true'
+        env:
+          KEYSTORE: ${{ secrets.DEBUG_KEYSTORE_BASE64 }}
+        run: |
+          if [ -z "$KEYSTORE" ]; then
+            echo "::error::Secret DEBUG_KEYSTORE_BASE64 is not set; a new key would break updates."
+            exit 1
+          fi
+          mkdir -p ~/.android
+          echo "$KEYSTORE" | base64 -d > ~/.android/debug.keystore
+
+      - uses: actions/setup-java@v4
+        if: steps.check.outputs.skip != 'true'
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - name: Use the official native engine and models
+        if: steps.check.outputs.skip != 'true'
+        run: bash scripts/custom/use-official-native.sh "${{ steps.base.outputs.tag }}"
+
+      - name: Test, lint and build
+        if: steps.check.outputs.skip != 'true'
+        working-directory: android
+        run: |
+          echo "sdk.dir=$ANDROID_HOME" > local.properties
+          chmod +x gradlew
+          ./gradlew --no-daemon :rebuilt:testDebugUnitTest :rebuilt:lintDebug :rebuilt:assembleDebug -x verifySharedEngine
+
+      - name: Publish the APK
+        if: steps.check.outputs.skip != 'true'
+        env:
+          RELEASE: ${{ steps.base.outputs.release }}
+          TAG: ${{ steps.base.outputs.tag }}
+        run: |
+          apk="ZeroConvert-IME-$RELEASE-arm64.apk"
+          cp android/rebuilt/build/outputs/apk/debug/rebuilt-arm64-v8a-debug.apk "$apk"
+          sha256sum "$apk" > SHA256SUMS.txt
+          gh release create "$RELEASE" "$apk" SHA256SUMS.txt \
+            -R "$GITHUB_REPOSITORY" \
+            --target "$(git rev-parse HEAD)" \
+            --title "$RELEASE" \
+            --notes "本家 $TAG をもとにしたカスタム版（com.zeroconvert.ime.custom、arm64）。コミット $(git rev-parse --short HEAD)。"
