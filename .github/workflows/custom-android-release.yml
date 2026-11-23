@@ -43,7 +43,14 @@ jobs:
       - name: Take in the latest upstream release
         id: base
         run: |
-          tag=$(gh release view -R "$UPSTREAM" --json tagName -q .tagName)
+          # Upstream also publishes model and dictionary releases (models-v*, dictionary-v*);
+          # only the app releases (v*) carry the APK and native engine this build reuses.
+          tag=$(gh api "repos/$UPSTREAM/releases?per_page=50" \
+            -q '[.[] | select((.draft or .prerelease) | not) | .tag_name | select(test("^v[0-9]"))][0] // empty')
+          if [ -z "$tag" ]; then
+            echo "::error::No upstream app release (v*) found."
+            exit 1
+          fi
           git fetch --no-tags "https://github.com/$UPSTREAM.git" "refs/tags/$tag:refs/tags/$tag"
           if ! git merge-base --is-ancestor "$tag" HEAD; then
             git config user.name "github-actions[bot]"
