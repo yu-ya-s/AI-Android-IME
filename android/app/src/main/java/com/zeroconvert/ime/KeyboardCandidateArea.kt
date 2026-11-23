@@ -198,7 +198,8 @@ fun KeyboardAssistBar(
     palette: ZeroConPalette,
     onAdopt: () -> Unit,
     onUndo: () -> Unit,
-    onCommitReading: (() -> Unit)? = null
+    onCommitReading: (() -> Unit)? = null,
+    idleActions: (@Composable RowScope.() -> Unit)? = null
 ) {
     Row(
         modifier = Modifier.fillMaxWidth().height(KeyboardBarHeight).background(palette.canvas),
@@ -254,7 +255,16 @@ fun KeyboardAssistBar(
         }
         // The assist slot keeps its width while idle so results never reflow the reading.
         Box(Modifier.weight(1f).fillMaxHeight().padding(horizontal = 2.dp)) {
-            if (reading.isNotEmpty() && assist != null) {
+            // Next-word predictions take over the candidate row after a commit, so the editing
+            // buttons live in this otherwise empty slot while nothing is being typed.
+            if (reading.isEmpty() && idleActions != null) {
+                Row(
+                    modifier = Modifier.fillMaxSize(),
+                    horizontalArrangement = Arrangement.End,
+                    verticalAlignment = Alignment.CenterVertically,
+                    content = idleActions
+                )
+            } else if (reading.isNotEmpty() && assist != null) {
                 val isTypo = assist.type == AiAssistType.TYPO_CORRECTION
                 val title = if (isTypo) "補正" else "先読み"
                 val color = if (isTypo) palette.warningAmber else palette.primaryAccentSoft

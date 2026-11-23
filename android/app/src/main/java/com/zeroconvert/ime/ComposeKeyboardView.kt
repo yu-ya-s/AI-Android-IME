@@ -48,6 +48,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.graphics.painter.Painter
 import androidx.compose.ui.graphics.vector.rememberVectorPainter
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.layout.LayoutCoordinates
@@ -662,7 +663,39 @@ private fun KeyboardTopBars(
         palette = palette,
         onAdopt = onAdoptAiAssist,
         onUndo = { imeService.revertAiAssist() },
-        onCommitReading = { imeService.commitReadingAsIs() }.takeIf { !translation.active }
+        onCommitReading = { imeService.commitReadingAsIs() }.takeIf { !translation.active },
+        idleActions = if (translation.active) null else {
+            {
+                ToolbarIconButton(
+                    icon = Icons.Default.SelectAll,
+                    description = "すべて選択",
+                    tint = palette.textSecondary,
+                    onClick = { imeService.selectAllText() }
+                )
+                if (!privateMode) {
+                    ToolbarIconButton(
+                        painter = painterResource(R.drawable.ic_clipboard),
+                        description = "クリップボード",
+                        tint = palette.textSecondary,
+                        onClick = { onActiveTabChange(KeyboardTab.CLIPBOARD) }
+                    )
+                }
+                ToolbarIconButton(
+                    icon = Icons.Outlined.Mood,
+                    description = "絵文字",
+                    tint = palette.textSecondary,
+                    onClick = { onActiveTabChange(KeyboardTab.EMOJI) }
+                )
+                if (!privateMode && imeService.voiceInputAvailableState.value) {
+                    ToolbarIconButton(
+                        icon = Icons.Default.Mic,
+                        description = "音声入力",
+                        tint = palette.textSecondary,
+                        onClick = { imeService.startVoiceInput() }
+                    )
+                }
+            }
+        }
     )
 
     // --- 1. Candidate Bar & Toolbar (with Clipboard Toggle & Expand/Collapse) ---
@@ -933,66 +966,6 @@ private fun KeyboardTopBars(
                         }
                     }
 
-                    if (barPolicy.mode == CandidateBarContentMode.IDLE_TOOLBAR) {
-                        Box(
-                            modifier = Modifier
-                                .size(36.dp)
-                                .clip(RoundedCornerShape(ZeroConRadius.Chip))
-                                .semantics { contentDescription = "絵文字" }
-                                .pointerDownHaptic()
-                                .clickable { onActiveTabChange(KeyboardTab.EMOJI) },
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Icon(
-                                imageVector = Icons.Outlined.Mood,
-                                contentDescription = null,
-                                tint = palette.textSecondary,
-                                modifier = Modifier.size(20.dp)
-                            )
-                        }
-                    }
-
-                    if (barPolicy.mode == CandidateBarContentMode.IDLE_TOOLBAR) {
-                        ToolbarIconButton(
-                            icon = Icons.Default.SelectAll,
-                            description = "すべて選択",
-                            tint = palette.textSecondary,
-                            onClick = { imeService.selectAllText() }
-                        )
-                    }
-
-                    if (barPolicy.mode == CandidateBarContentMode.IDLE_TOOLBAR && !privateMode &&
-                        imeService.voiceInputAvailableState.value
-                    ) {
-                        ToolbarIconButton(
-                            icon = Icons.Default.Mic,
-                            description = "音声入力",
-                            tint = palette.textSecondary,
-                            onClick = { imeService.startVoiceInput() }
-                        )
-                    }
-
-                    if (barPolicy.mode == CandidateBarContentMode.IDLE_TOOLBAR && !privateMode) {
-                        Box(
-                            modifier = Modifier
-                                .size(36.dp)
-                                .clip(RoundedCornerShape(ZeroConRadius.Chip))
-                                .background(if (activeTab == KeyboardTab.CLIPBOARD) accentColor.copy(alpha = 0.22f) else Color.Transparent)
-                                .pointerDownHaptic()
-                                .clickable {
-                                    onActiveTabChange(if (activeTab == KeyboardTab.CLIPBOARD) KeyboardTab.MAIN else KeyboardTab.CLIPBOARD)
-                                },
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Icon(
-                                painter = painterResource(R.drawable.ic_clipboard),
-                                contentDescription = "Clipboard",
-                                tint = if (activeTab == KeyboardTab.CLIPBOARD) accentColor else palette.textSecondary,
-                                modifier = Modifier.size(20.dp)
-                            )
-                        }
-                    }
-
                     if (barPolicy.showCandidateToggle) {
                         val isExpandedToggle = barPolicy.isCandidateToggleExpanded
                         Surface(
@@ -1131,6 +1104,16 @@ private fun ToolbarIconButton(
     tint: Color,
     onClick: () -> Unit
 ) {
+    ToolbarIconButton(rememberVectorPainter(icon), description, tint, onClick)
+}
+
+@Composable
+private fun ToolbarIconButton(
+    painter: Painter,
+    description: String,
+    tint: Color,
+    onClick: () -> Unit
+) {
     Box(
         modifier = Modifier
             .size(36.dp)
@@ -1144,7 +1127,7 @@ private fun ToolbarIconButton(
         contentAlignment = Alignment.Center
     ) {
         Icon(
-            imageVector = icon,
+            painter = painter,
             contentDescription = null,
             tint = tint,
             modifier = Modifier.size(20.dp)
