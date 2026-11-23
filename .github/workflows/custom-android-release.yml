@@ -5,7 +5,7 @@
 # and publishes it as a release of this fork so an updater app on the phone can pick it up.
 #
 # Setup (once, in this fork):
-#   - Actions enabled, and the default branch set to custom-keyboard-ui (schedules only run there).
+#   - Actions enabled, and the default branch set to master (schedules only run there).
 #   - Secret DEBUG_KEYSTORE_BASE64 = base64 of the debug.keystore that signed the installed app.
 #     Updates only install over the existing app when every build uses this same key.
 #
@@ -18,7 +18,7 @@ on:
     - cron: "0 21 * * *" # 06:00 JST
   workflow_dispatch:
   push:
-    branches: [custom-keyboard-ui]
+    branches: [master]
 
 permissions:
   contents: write
@@ -33,11 +33,11 @@ jobs:
     env:
       GH_TOKEN: ${{ github.token }}
       UPSTREAM: g0083/ZeroConvert-IME
-      BRANCH: custom-keyboard-ui
+      BRANCH: master
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: custom-keyboard-ui
+          ref: master
           fetch-depth: 0
 
       - name: Take in the latest upstream release
