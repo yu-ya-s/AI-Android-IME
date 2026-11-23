@@ -80,8 +80,12 @@ jobs:
             echo "::error::Secret DEBUG_KEYSTORE_BASE64 is not set; a new key would break updates."
             exit 1
           fi
-          mkdir -p ~/.android
-          echo "$KEYSTORE" | base64 -d > ~/.android/debug.keystore
+          # Point the Android Gradle plugin at this directory explicitly: the first published
+          # build was signed with another key although ~/.android/debug.keystore was restored.
+          key_home="$RUNNER_TEMP/android-user-home"
+          mkdir -p "$key_home"
+          echo "$KEYSTORE" | base64 -d > "$key_home/debug.keystore"
+          echo "ANDROID_USER_HOME=$key_home" >> "$GITHUB_ENV"
 
       - uses: actions/setup-java@v4
         if: steps.check.outputs.skip != 'true'
@@ -100,6 +104,21 @@ jobs:
           echo "sdk.dir=$ANDROID_HOME" > local.properties
           chmod +x gradlew
           ./gradlew --no-daemon :rebuilt:testDebugUnitTest :rebuilt:lintDebug :rebuilt:assembleDebug -x verifySharedEngine
+
+      - name: Check the APK is signed with the installed app's key
+        if: steps.check.outputs.skip != 'true'
+        env:
+          # Certificate (public) fingerprint of the key that signed the app on the phone.
+          expected: 4833038733d279837b785cac7cd76e63c2558abbd3f666532329092d848631fe
+        run: |
+          apksigner=$(ls -d "$ANDROID_HOME"/build-tools/*/apksigner | sort -V | tail -1)
+          actual=$("$apksigner" verify --print-certs android/rebuilt/build/outputs/apk/debug/rebuilt-arm64-v8a-debug.apk \
+            | awk '/certificate SHA-256 digest:/ { print $NF; exit }')
+          echo "expected=$expected actual=$actual"
+          if [ -z "$expected" ] || [ "$expected" != "$actual" ]; then
+            echo "::error::The APK is not signed with the installed app's key; it would not update the app."
+            exit 1
+          fi
 
       - name: Publish the APK
         if: steps.check.outputs.skip != 'true'
