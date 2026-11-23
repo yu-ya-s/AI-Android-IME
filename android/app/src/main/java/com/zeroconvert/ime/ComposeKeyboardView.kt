@@ -661,7 +661,8 @@ private fun KeyboardTopBars(
         correctionApplied = imeService.aiAssistAdoptedState.value,
         palette = palette,
         onAdopt = onAdoptAiAssist,
-        onUndo = { imeService.revertAiAssist() }
+        onUndo = { imeService.revertAiAssist() },
+        onCommitReading = { imeService.commitReadingAsIs() }.takeIf { !translation.active }
     )
 
     // --- 1. Candidate Bar & Toolbar (with Clipboard Toggle & Expand/Collapse) ---
@@ -949,6 +950,15 @@ private fun KeyboardTopBars(
                                 modifier = Modifier.size(20.dp)
                             )
                         }
+                    }
+
+                    if (barPolicy.mode == CandidateBarContentMode.IDLE_TOOLBAR) {
+                        ToolbarIconButton(
+                            icon = Icons.Default.SelectAll,
+                            description = "すべて選択",
+                            tint = palette.textSecondary,
+                            onClick = { imeService.selectAllText() }
+                        )
                     }
 
                     if (barPolicy.mode == CandidateBarContentMode.IDLE_TOOLBAR && !privateMode &&

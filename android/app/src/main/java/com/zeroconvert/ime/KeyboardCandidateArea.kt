@@ -197,7 +197,8 @@ fun KeyboardAssistBar(
     correctionApplied: Boolean,
     palette: ZeroConPalette,
     onAdopt: () -> Unit,
-    onUndo: () -> Unit
+    onUndo: () -> Unit,
+    onCommitReading: (() -> Unit)? = null
 ) {
     Row(
         modifier = Modifier.fillMaxWidth().height(KeyboardBarHeight).background(palette.canvas),
@@ -212,8 +213,21 @@ fun KeyboardAssistBar(
         val measurer = rememberTextMeasurer()
         val density = LocalDensity.current
         // Fixed left half: an assist result appearing or disappearing must not resize the reading.
+        // Tapping the reading commits it as typed: the quickest way to keep a word in kana.
+        val commitReading = onCommitReading?.takeIf { reading.isNotEmpty() }
         BoxWithConstraints(
-            modifier = Modifier.fillMaxWidth(0.5f).fillMaxHeight().padding(horizontal = 8.dp),
+            modifier = Modifier.fillMaxWidth(0.5f).fillMaxHeight()
+                .then(
+                    if (commitReading != null) {
+                        Modifier
+                            .semantics { contentDescription = "「$reading」をそのまま確定" }
+                            .pointerDownHaptic()
+                            .clickable(onClick = commitReading)
+                    } else {
+                        Modifier
+                    }
+                )
+                .padding(horizontal = 8.dp),
             contentAlignment = Alignment.CenterStart
         ) {
             // The reading grows to the right, so overflow drops the oldest characters instead of the newest.

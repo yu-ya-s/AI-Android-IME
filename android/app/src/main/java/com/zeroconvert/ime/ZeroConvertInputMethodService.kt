@@ -3436,6 +3436,23 @@ class ZeroConvertInputMethodService : InputMethodService(),
         }
     }
 
+    /** Commits the reading in front of the cursor as typed, for words meant to stay in kana. */
+    fun commitReadingAsIs() {
+        if (isConfirming || isTranslationMode() || englishComposing.isNotEmpty() || composingText.isEmpty) return
+        val reading = composingText.convertTargetBeforeCursor
+        if (reading.isEmpty()) return
+        commitText(reading, isExplicitSelection = true)
+    }
+
+    fun selectAllText() {
+        if (!composingText.isEmpty || englishComposing.isNotEmpty()) return
+        val connection = currentInputConnection ?: return
+        if (connection.performContextMenuAction(android.R.id.selectAll)) return
+        // Editors without the context-menu action still accept an explicit selection.
+        val length = connection.getExtractedText(android.view.inputmethod.ExtractedTextRequest(), 0)?.text?.length ?: return
+        connection.setSelection(0, length)
+    }
+
     fun canReconvertSelection(): Boolean = selectionAvailableState.value && composingText.isEmpty &&
         !isSensitiveInput() && !isTranslationMode()
 
