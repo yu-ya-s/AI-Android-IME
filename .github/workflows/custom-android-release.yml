@@ -1,11 +1,11 @@
 # Personal build of the Android keyboard (package com.zeroconvert.ime.custom).
 #
-# Every day it takes the latest upstream release into the custom branch, builds the APK with
-# the official native engine and models from that release (scripts/custom/use-official-native.sh),
-# and publishes it as a release of this fork so an updater app on the phone can pick it up.
+# On each push or manual run it takes the latest upstream release into the custom branch, builds
+# the APK with the official native engine and models from that release
+# (scripts/custom/use-official-native.sh), and publishes it as a release of this fork.
 #
 # Setup (once, in this fork):
-#   - Actions enabled, and the default branch set to master (schedules only run there).
+#   - Actions enabled.
 #   - Secret DEBUG_KEYSTORE_BASE64 = base64 of the debug.keystore that signed the installed app.
 #     Updates only install over the existing app when every build uses this same key.
 #
@@ -14,8 +14,6 @@
 name: Custom Android build
 
 on:
-  schedule:
-    - cron: "0 21 * * *" # 06:00 JST
   workflow_dispatch:
   push:
     branches: [master]
