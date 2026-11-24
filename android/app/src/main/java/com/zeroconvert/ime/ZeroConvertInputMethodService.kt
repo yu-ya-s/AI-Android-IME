@@ -3492,6 +3492,12 @@ class ZeroConvertInputMethodService : InputMethodService(),
         connection.setSelection(0, length)
     }
 
+    /** Copies the editor's selection; selecting all is almost always followed by a copy. */
+    fun copySelection() {
+        if (!selectionAvailableState.value || isSensitiveInput()) return
+        currentInputConnection?.performContextMenuAction(android.R.id.copy)
+    }
+
     fun canReconvertSelection(): Boolean = selectionAvailableState.value && composingText.isEmpty &&
         !isSensitiveInput() && !isTranslationMode()
 

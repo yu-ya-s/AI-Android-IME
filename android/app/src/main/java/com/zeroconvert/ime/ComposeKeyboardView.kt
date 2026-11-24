@@ -676,6 +676,14 @@ private fun KeyboardTopBars(
                     tint = palette.textSecondary,
                     onClick = { imeService.selectAllText() }
                 )
+                if (!privateMode && imeService.selectionAvailableState.value) {
+                    ToolbarIconButton(
+                        icon = Icons.Default.ContentCopy,
+                        description = "コピー",
+                        tint = palette.textSecondary,
+                        onClick = { imeService.copySelection() }
+                    )
+                }
                 if (!privateMode) {
                     ToolbarIconButton(
                         painter = painterResource(R.drawable.ic_clipboard),
