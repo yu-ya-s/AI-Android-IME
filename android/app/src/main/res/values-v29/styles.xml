@@ -1,6 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <style name="ZeroConvertSettingsTheme" parent="android:style/Theme.DeviceDefault.DayNight" />
+    <style name="ZeroConvertSettingsTheme" parent="android:style/Theme.DeviceDefault.DayNight">
+        <!-- The settings screen draws its own header in Compose. -->
+        <item name="android:windowActionBar">false</item>
+        <item name="android:windowNoTitle">true</item>
+    </style>
 
     <!-- Floating editor over the keyboard: transparent window, the card is drawn in Compose. -->
     <style name="ZeroConvertClipboardEditTheme" parent="android:style/Theme.DeviceDefault.NoActionBar">

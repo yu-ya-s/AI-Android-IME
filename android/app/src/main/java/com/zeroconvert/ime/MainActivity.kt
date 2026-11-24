@@ -7,7 +7,12 @@ import android.os.Build
 import android.os.Bundle
 import android.provider.Settings
 import android.view.inputmethod.InputMethodManager
+import android.app.Activity
 import androidx.activity.ComponentActivity
+import androidx.compose.runtime.SideEffect
+import androidx.compose.ui.graphics.toArgb
+import androidx.compose.ui.platform.LocalView
+import androidx.core.view.WindowCompat
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
@@ -21,6 +26,10 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.pager.HorizontalPager
+import androidx.compose.foundation.pager.rememberPagerState
+import androidx.compose.runtime.snapshotFlow
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
@@ -128,6 +137,7 @@ class MainActivity : ComponentActivity() {
     }
 }
 
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun MainScreen(
     modelStatus: String,
@@ -2325,66 +2335,87 @@ fun MainScreen(
                 .fillMaxSize()
                 .background(palette.canvas)
         ) {
-            Column(
+            val view = LocalView.current
+            SideEffect {
+                // The system bar takes the screen's own colour instead of the platform default blue.
+                val window = (view.context as? Activity)?.window ?: return@SideEffect
+                window.statusBarColor = palette.canvas.toArgb()
+                window.navigationBarColor = palette.canvas.toArgb()
+                WindowCompat.getInsetsController(window, view).apply {
+                    isAppearanceLightStatusBars = !palette.isDark
+                    isAppearanceLightNavigationBars = !palette.isDark
+                }
+            }
+            Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(start = 20.dp, end = 20.dp, top = 20.dp, bottom = 12.dp),
-                verticalArrangement = Arrangement.spacedBy(10.dp)
+                    .padding(start = 20.dp, end = 20.dp, top = 16.dp, bottom = 12.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(12.dp)
             ) {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(14.dp)
+                ZeroConLogo(size = 36.dp)
+                Column(
+                    modifier = Modifier.weight(1f),
+                    verticalArrangement = Arrangement.spacedBy(2.dp)
                 ) {
-                    ZeroConLogo(size = 48.dp)
-                    Column(modifier = Modifier.weight(1f)) {
-                        Text(
-                            text = "ZeroCon Keyboard",
-                            color = palette.textPrimary,
-                            fontSize = 20.sp,
-                            fontWeight = FontWeight.Bold,
-                            letterSpacing = (-0.3).sp
-                        )
-                        Text(
-                            text = "ZeroCon AI 搭載 — オンデバイス日本語入力",
-                            color = palette.textSecondary,
-                            fontSize = 12.sp,
-                            lineHeight = 16.sp
-                        )
-                    }
+                    Text(
+                        text = "ZeroCon Keyboard",
+                        color = palette.textPrimary,
+                        fontSize = 18.sp,
+                        fontWeight = FontWeight.Bold,
+                        letterSpacing = (-0.3).sp
+                    )
+                    val statusText = modelStatus.removePrefix("● ").trim()
+                    SettingsStatusLine(
+                        text = statusText,
+                        ready = statusText.contains("準備完了"),
+                        palette = palette
+                    )
                 }
-                val statusText = modelStatus.removePrefix("● ").trim()
-                SettingsStatusPill(
-                    text = statusText,
-                    ready = statusText.contains("準備完了"),
-                    palette = palette
-                )
             }
 
             if (keyboardSelected) {
+                // Tabs follow a horizontal pager so a sideways swipe moves to the next tab.
+                val pagerState = rememberPagerState(
+                    initialPage = SettingsTabs.indexOfFirst { it.id == selectedTab }.coerceAtLeast(0)
+                ) { SettingsTabs.size }
+                val pagerScope = rememberCoroutineScope()
+                LaunchedEffect(pagerState) {
+                    snapshotFlow { pagerState.currentPage }.collect { selectedTab = SettingsTabs[it].id }
+                }
                 SettingsTabBar(
                     tabs = SettingsTabs,
                     selectedId = selectedTab,
                     palette = palette,
-                    onSelected = { selectedTab = it }
-                )
-                Column(
-                    modifier = Modifier
-                        .weight(1f)
-                        .verticalScroll(scrollState)
-                        .padding(horizontal = 20.dp, vertical = 16.dp),
-                    verticalArrangement = Arrangement.spacedBy(20.dp)
-                ) {
-                    when (selectedTab) {
-                        "input" -> InputTabContent()
-                        "conversion" -> ConversionTabContent()
-                        "data" -> DataTabContent()
-                        "translation" -> TranslationTabContent()
-                        "benchmark" -> BenchmarkTabContent()
-                        "appearance" -> AppearanceTabContent()
-                        "about" -> AboutTabContent()
+                    onSelected = { id ->
+                        val page = SettingsTabs.indexOfFirst { it.id == id }
+                        if (page >= 0) pagerScope.launch { pagerState.animateScrollToPage(page) }
                     }
-                    Spacer(modifier = Modifier.height(20.dp))
+                )
+                HorizontalPager(
+                    state = pagerState,
+                    modifier = Modifier.weight(1f),
+                    verticalAlignment = Alignment.Top,
+                    key = { SettingsTabs[it].id }
+                ) { page ->
+                    Column(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .verticalScroll(rememberScrollState())
+                            .padding(horizontal = 20.dp, vertical = 16.dp),
+                        verticalArrangement = Arrangement.spacedBy(20.dp)
+                    ) {
+                        when (SettingsTabs[page].id) {
+                            "input" -> InputTabContent()
+                            "conversion" -> ConversionTabContent()
+                            "data" -> DataTabContent()
+                            "translation" -> TranslationTabContent()
+                            "benchmark" -> BenchmarkTabContent()
+                            "appearance" -> AppearanceTabContent()
+                            "about" -> AboutTabContent()
+                        }
+                        Spacer(modifier = Modifier.height(20.dp))
+                    }
                 }
             } else {
                 Column(

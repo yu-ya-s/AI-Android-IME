@@ -9,6 +9,8 @@ import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.IntrinsicSize
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -40,7 +42,17 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateMapOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.onPlaced
+import androidx.compose.ui.layout.onSizeChanged
+import androidx.compose.ui.layout.positionInParent
+import kotlin.math.roundToInt
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -238,36 +250,30 @@ fun SettingsBadge(text: String, palette: ZeroConPalette) {
 }
 
 @Composable
-fun SettingsStatusPill(
+fun SettingsStatusLine(
     text: String,
     ready: Boolean,
     palette: ZeroConPalette
 ) {
+    // Only the dot carries the state colour; a ready model reads as plain secondary text.
     val color = if (ready) palette.readyEmerald else palette.warningAmber
-    Surface(
-        shape = RoundedCornerShape(50),
-        color = color.copy(alpha = 0.12f),
-        border = BorderStroke(1.dp, color.copy(alpha = 0.35f))
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(6.dp)
     ) {
-        Row(
-            modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(6.dp)
-        ) {
-            Box(
-                modifier = Modifier
-                    .size(6.dp)
-                    .background(color, CircleShape)
-            )
-            Text(
-                text = text,
-                color = color,
-                fontSize = 11.sp,
-                fontWeight = FontWeight.SemiBold,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis
-            )
-        }
+        Box(
+            modifier = Modifier
+                .size(6.dp)
+                .background(color, CircleShape)
+        )
+        Text(
+            text = text,
+            color = if (ready) palette.textSecondary else color,
+            fontSize = 12.sp,
+            lineHeight = 16.sp,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis
+        )
     }
 }
 
@@ -443,38 +449,56 @@ fun SettingsTabBar(
     onSelected: (String) -> Unit,
     modifier: Modifier = Modifier
 ) {
-    Row(
-        modifier = modifier
-            .fillMaxWidth()
-            .horizontalScroll(rememberScrollState())
-            .padding(horizontal = 20.dp, vertical = 2.dp),
-        horizontalArrangement = Arrangement.spacedBy(6.dp)
-    ) {
-        tabs.forEach { tab ->
-            val selected = tab.id == selectedId
-            Surface(
-                modifier = Modifier.clickable { onSelected(tab.id) },
-                shape = RoundedCornerShape(8.dp),
-                color = if (selected) palette.primaryAccent else palette.surface,
-                border = BorderStroke(1.dp, if (selected) palette.primaryAccent else palette.borderSubtle)
-            ) {
-                Row(
-                    modifier = Modifier.padding(horizontal = 12.dp, vertical = 9.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(5.dp)
+    // Text tabs on one hairline: the selected tab is marked by weight and an accent underline,
+    // so the header reads as navigation rather than a row of buttons.
+    val scroll = rememberScrollState()
+    var viewportWidth by remember { mutableIntStateOf(0) }
+    val tabBounds = remember { mutableStateMapOf<String, Pair<Int, Int>>() }
+    // Swiping the pages can select a tab that is scrolled out of the bar; keep it in view.
+    LaunchedEffect(selectedId, viewportWidth) {
+        val (left, width) = tabBounds[selectedId] ?: return@LaunchedEffect
+        scroll.animateScrollTo((left - (viewportWidth - width) / 2).coerceIn(0, scroll.maxValue))
+    }
+    Box(modifier = modifier.fillMaxWidth().onSizeChanged { viewportWidth = it.width }) {
+        Box(
+            modifier = Modifier
+                .align(Alignment.BottomStart)
+                .fillMaxWidth()
+                .height(1.dp)
+                .background(palette.borderSubtle)
+        )
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .horizontalScroll(scroll)
+                .padding(horizontal = 8.dp)
+        ) {
+            tabs.forEach { tab ->
+                val selected = tab.id == selectedId
+                Column(
+                    modifier = Modifier
+                        .onPlaced { tabBounds[tab.id] = it.positionInParent().x.roundToInt() to it.size.width }
+                        .clickable { onSelected(tab.id) }
+                        .padding(horizontal = 12.dp)
+                        .width(IntrinsicSize.Max),
+                    horizontalAlignment = Alignment.CenterHorizontally
                 ) {
-                    Icon(
-                        imageVector = tab.icon,
-                        contentDescription = null,
-                        tint = if (selected) palette.onAccent else palette.textSecondary,
-                        modifier = Modifier.size(16.dp)
-                    )
                     Text(
                         text = tab.label,
-                        color = if (selected) palette.onAccent else palette.textSecondary,
-                        fontSize = 13.sp,
-                        fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Medium,
+                        modifier = Modifier.padding(top = 10.dp, bottom = 9.dp),
+                        color = if (selected) palette.textPrimary else palette.textSecondary,
+                        fontSize = 14.sp,
+                        fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Normal,
                         maxLines = 1
+                    )
+                    Box(
+                        modifier = Modifier
+                            .height(2.dp)
+                            .fillMaxWidth()
+                            .background(
+                                if (selected) palette.primaryAccent else Color.Transparent,
+                                RoundedCornerShape(topStart = 2.dp, topEnd = 2.dp)
+                            )
                     )
                 }
             }
