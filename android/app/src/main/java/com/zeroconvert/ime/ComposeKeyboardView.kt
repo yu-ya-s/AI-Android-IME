@@ -683,6 +683,14 @@ private fun KeyboardTopBars(
                         tint = palette.textSecondary,
                         onClick = { onActiveTabChange(KeyboardTab.CLIPBOARD) }
                     )
+                    if (imeService.latestClipboardEntry() != null) {
+                        ToolbarIconButton(
+                            icon = Icons.Default.ContentPaste,
+                            description = "最新のコピーを貼り付け",
+                            tint = palette.textSecondary,
+                            onClick = { imeService.pasteLatestClipboard() }
+                        )
+                    }
                 }
                 ToolbarIconButton(
                     icon = Icons.Outlined.Mood,

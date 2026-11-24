@@ -1346,6 +1346,13 @@ class ZeroConvertInputMethodService : InputMethodService(),
             .putString(KEY_EMOJI_RECENT, updated.joinToString("\n")).apply()
     }
 
+    /** The most recently copied entry, for the one-tap paste button. */
+    fun latestClipboardEntry(): ClipboardEntry? = clipboardHistory.maxByOrNull { it.timestamp }
+
+    fun pasteLatestClipboard() {
+        latestClipboardEntry()?.let { pasteClipboard(it) }
+    }
+
     fun pasteClipboard(entry: ClipboardEntry, fromSuggestion: Boolean = false) {
         if (isPrivateMode) return
         if (!composingText.isEmpty) {
