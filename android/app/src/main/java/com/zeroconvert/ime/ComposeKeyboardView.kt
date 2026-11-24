@@ -16,6 +16,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.ArrowLeft
 import androidx.compose.material.icons.automirrored.filled.ArrowRight
 import androidx.compose.material.icons.automirrored.filled.Undo
@@ -3319,9 +3320,15 @@ fun EmojiPanel(
                 contentDescription = "かなキーボードに戻る",
                 onClick = onBackToQwerty
             ) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
+                // A back arrow, not the mode key's "あa1": this key leaves the emoji panel.
+                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(2.dp)) {
+                    Icon(
+                        imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                        contentDescription = null,
+                        tint = palette.textPrimary,
+                        modifier = Modifier.size(18.dp)
+                    )
                     Text("あ", color = palette.textPrimary, fontSize = 16.sp, fontWeight = FontWeight.Medium)
-                    Text("a1", color = palette.textMuted.copy(alpha = 0.72f), fontSize = 12.sp, fontWeight = FontWeight.Normal)
                 }
             }
 
