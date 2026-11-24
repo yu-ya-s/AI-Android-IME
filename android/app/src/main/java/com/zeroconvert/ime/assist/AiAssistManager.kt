@@ -66,6 +66,7 @@ object AiAssistManager {
         baselineReading: String = "",
         policy: AssistPolicyTransport = SharedAssistPolicy.native,
         allowPrediction: Boolean = true,
+        correctionFirst: (() -> AiAssistResult?)? = null,
         onUpdate: suspend (AssistUpdate) -> Unit
     ) = coroutineScope {
         val plan = SharedAssistPolicy.requestPlan(allowCorrection, allowPrediction, false,
@@ -82,7 +83,8 @@ object AiAssistManager {
             if (!plan.correction) {
                 null
             } else {
-                ModelCorrector(inference).suggest(context, reading, baseline, baselineReading)
+                // Gesture-backed corrections (12-key flick) are more specific than the model's guess.
+                correctionFirst?.invoke() ?: ModelCorrector(inference).suggest(context, reading, baseline, baselineReading)
             }
         }
         worker(AiAssistType.PREDICTION) {

@@ -231,7 +231,8 @@ fun KeyboardRootView(
             CompositionLocalProvider(
                 LocalKeyboardKeyHeight provides keyHeight,
                 LocalSpaceCursorDrag provides remember(imeService) { imeService::moveCursorBySteps },
-                LocalSwipeDelete provides imeService.swipeDeleteHandler
+                LocalSwipeDelete provides imeService.swipeDeleteHandler,
+                LocalFlickTouchRecorder provides remember(imeService) { imeService::recordFlickTouch }
             ) {
             Column(
                 modifier = Modifier

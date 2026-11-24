@@ -1394,6 +1394,7 @@ fun FlickKeyCell(
     val currentOnFlickComplete by rememberUpdatedState(onFlickComplete)
     val haptic by rememberUpdatedState(LocalOnKeyPressHaptic.current)
     val thresholdDp by rememberUpdatedState(LocalFlickThresholdDp.current)
+    val currentFlickTouchRecorder by rememberUpdatedState(LocalFlickTouchRecorder.current)
 
     var cellCoordinates by remember { mutableStateOf<LayoutCoordinates?>(null) }
     var isPressed by remember { mutableStateOf(false) }
@@ -1447,6 +1448,16 @@ fun FlickKeyCell(
                             if (change == null) break
                             if (!change.pressed) {
                                 change.consume()
+                                currentFlickTouchRecorder?.let { record ->
+                                    val thresholdPx = with(density) { thresholdDp.toPx() }.coerceAtLeast(1f)
+                                    record(FlickTouchSample(
+                                        keyCenter = gestureKeyDef.center, direction = currentDir,
+                                        dragX = (change.position.x - startOffset.x) / thresholdPx,
+                                        dragY = (change.position.y - startOffset.y) / thresholdPx,
+                                        downX = startOffset.x / size.width.coerceAtLeast(1),
+                                        downY = startOffset.y / size.height.coerceAtLeast(1)
+                                    ))
+                                }
                                 currentOnFlickComplete(gestureKeyDef, currentDir)
                                 break
                             }

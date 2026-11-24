@@ -2363,6 +2363,8 @@ class ZeroConvertInputMethodService : InputMethodService(),
     private var lastInferredResult: String = ""
     private var isConfirming = false
     private val japaneseTouchBiases = ArrayList<TouchKeyBias>(64)
+    private val flickTouchLog = FlickTouchLog()
+    private var pendingFlickTouch: FlickTouchSample? = null
     private val englishTouchBiases = ArrayList<TouchKeyBias>(64)
 
     private fun tentativeInlineDisplay(surface: String, isRealtime: Boolean): String {
@@ -2481,7 +2483,24 @@ class ZeroConvertInputMethodService : InputMethodService(),
         }
     }
 
+    fun recordFlickTouch(sample: FlickTouchSample) {
+        pendingFlickTouch = sample
+    }
+
+    private fun flickCorrection(
+        reading: String,
+        baseline: String,
+        touches: Map<Int, FlickTouchSample>
+    ): com.zeroconvert.ime.assist.AiAssistResult? {
+        if (touches.isEmpty()) return null
+        return FlickTypoCorrector.suggest(reading, baseline, touches) { candidate ->
+            ZenzNative.lookupDict(KanaKanjiConverter.toKatakana(candidate), prefixSearch = false, maxCount = 1)
+                .firstOrNull()?.let { it.text to it.cost }
+        }
+    }
+
     fun handleKana(kana: String) {
+        val flickTouch = pendingFlickTouch.also { pendingFlickTouch = null }
         if (isConfirming) return
         canRewindOnNextBackspace = false
 
@@ -2509,6 +2528,7 @@ class ZeroConvertInputMethodService : InputMethodService(),
             leftContextConnection = ic
             inferenceHistory.clear()
             lastAutoCommitRewind = null
+            flickTouchLog.clear()
         }
 
         // Abort ongoing inference
@@ -2517,7 +2537,9 @@ class ZeroConvertInputMethodService : InputMethodService(),
         // Insert direct kana into composingText
         recordJapaneseComposingUndo()
         japaneseTouchBiases.clear()
+        val insertIndex = composingText.convertTargetCursorPosition
         composingText.insertAtCursorPosition(kana, InputStyle.DIRECT)
+        if (flickTouch != null && flickTouch.output == kana) flickTouchLog.add(insertIndex, kana, flickTouch)
         val surface = composingText.convertTargetBeforeCursor
         currentComposingSurface.value = surface
 
@@ -2804,6 +2826,7 @@ class ZeroConvertInputMethodService : InputMethodService(),
                         val allowCorrection = isDictionaryTypoCorrectionState.value && !corrections.isApplied && fixedPrefix.isEmpty()
                         val allowPrediction = isAiAssistEnabled()
                         val baselineReading = inlineBase?.enginePredictionReading.orEmpty()
+                        val flickTouches = if (allowCorrection) flickTouchLog.aligned(surface) else emptyMap()
                         aiAssistJob = serviceScope.launch(Dispatchers.IO) {
                             com.zeroconvert.ime.assist.TypoLearning.ensureLoaded(applicationContext)
                             com.zeroconvert.ime.assist.AiAssistManager.streamAiAssist(
@@ -2812,7 +2835,8 @@ class ZeroConvertInputMethodService : InputMethodService(),
                                 context = context,
                                 allowCorrection = allowCorrection,
                                 allowPrediction = allowPrediction,
-                                baselineReading = baselineReading
+                                baselineReading = baselineReading,
+                                correctionFirst = { flickCorrection(surface, best, flickTouches) }
                             ) { update ->
                                 ensureActive()
                                 if (editorContextMatches(connection, context, sensitive)) {
