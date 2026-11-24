@@ -2626,6 +2626,12 @@ class ZeroConvertInputMethodService : InputMethodService(),
             val ch = last.first()
             if (ch.isLetter()) {
                 val flipped = if (ch.isUpperCase()) ch.lowercaseChar() else ch.uppercaseChar()
+                // The letter is still composing: deleteSurroundingText would remove the committed
+                // text before the composition instead, so rewrite the composition itself.
+                if (englishComposing.isNotEmpty()) {
+                    replaceLastCommittedText(flipped.toString(), 1)
+                    return
+                }
                 ic.deleteSurroundingText(1, 0)
                 if (ic.commitText(flipped.toString(), 1) && !isSensitiveInput()) {
                     undoHistory.push(
