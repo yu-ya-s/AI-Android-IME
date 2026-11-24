@@ -1684,6 +1684,8 @@ class ZeroConvertInputMethodService : InputMethodService(),
     // azooKey IME State Machine
     val composingText = ComposingText()
     val currentComposingSurface = mutableStateOf("")
+    /** The focused editor's Enter action ("次へ", "検索", …), or null for a line break. */
+    val enterKeyLabelState = mutableStateOf<String?>(null)
     val predictedCandidate = mutableStateOf("")
     val candidatesList = mutableStateListOf<Candidate>()
     val selectionAvailableState = mutableStateOf(false)
@@ -4113,6 +4115,7 @@ class ZeroConvertInputMethodService : InputMethodService(),
         super.onStartInput(info, restarting)
         cancelClipboardEdit()
         updateInputPrivacy(info)
+        enterKeyLabelState.value = info?.let { EnterKeyLabel.forEditor(it.imeOptions) }
         exitTranslationMode(revert = false)
         clearInput()
         undoHistory.clear()

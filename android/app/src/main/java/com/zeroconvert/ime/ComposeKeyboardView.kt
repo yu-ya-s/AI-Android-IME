@@ -232,7 +232,10 @@ fun KeyboardRootView(
                 LocalKeyboardKeyHeight provides keyHeight,
                 LocalSpaceCursorDrag provides remember(imeService) { imeService::moveCursorBySteps },
                 LocalSwipeDelete provides imeService.swipeDeleteHandler,
-                LocalFlickTouchRecorder provides remember(imeService) { imeService::recordFlickTouch }
+                LocalFlickTouchRecorder provides remember(imeService) { imeService::recordFlickTouch },
+                // While text is composing, Enter confirms it; the editor action applies only after that.
+                LocalEnterKeyLabel provides imeService.enterKeyLabelState.value
+                    .takeIf { imeService.currentComposingSurface.value.isEmpty() }
             ) {
             Column(
                 modifier = Modifier
@@ -2282,12 +2285,7 @@ private fun SharedQwertyLayout(
                         onBeforePress = flushBeforeAction,
                         onClick = onEnter
                     ) {
-                        Icon(
-                            imageVector = Icons.Default.KeyboardReturn,
-                            contentDescription = "Enter",
-                            tint = palette.onAccent,
-                            modifier = Modifier.size(24.dp)
-                        )
+                        EnterKeyContent(tint = palette.onAccent, description = "Enter")
                     }
                 }
             )
@@ -2575,7 +2573,7 @@ fun NumericPadLayout(
                 isAccent = true,
                 onClick = onEnter
             ) {
-                Icon(imageVector = Icons.Default.KeyboardReturn, contentDescription = "Enter", tint = palette.onAccent, modifier = Modifier.size(22.dp))
+                EnterKeyContent(tint = palette.onAccent, iconSize = 22.dp, description = "Enter")
             }
         }
     }

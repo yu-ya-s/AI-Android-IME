@@ -725,12 +725,7 @@ private fun FlickSideEnterButton(
         contentDescription = "確定",
         onClick = onEnter
     ) {
-        Icon(
-            imageVector = Icons.AutoMirrored.Filled.KeyboardReturn,
-            contentDescription = null,
-            tint = palette.onAccent,
-            modifier = Modifier.size(24.dp)
-        )
+        EnterKeyContent(tint = palette.onAccent)
     }
 }
 
