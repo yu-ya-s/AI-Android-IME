@@ -1,25 +1,23 @@
 package com.zeroconvert.ime
 
-import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
 import androidx.compose.foundation.isSystemInDarkTheme
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.ColorScheme
 import androidx.compose.material3.Typography
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.geometry.CornerRadius
-import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.geometry.Rect
-import androidx.compose.ui.geometry.RoundRect
-import androidx.compose.ui.geometry.Size
-import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.Path
-import androidx.compose.ui.graphics.StrokeCap
-import androidx.compose.ui.graphics.drawscope.Stroke
-import androidx.compose.ui.graphics.drawscope.clipPath
+import androidx.compose.ui.res.colorResource
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
@@ -399,90 +397,23 @@ fun zeroConTypography(): Typography {
     )
 }
 
-/**
- * Renders the unified ZeroCon Obsidian & Platinum Slate Logo:
- * - Obsidian squircle (#10121A -> #1C202C) with subtle rim
- * - Satin platinum "0" capsule (#FFFFFF -> #E2E8F0) with 45-degree conversion slash clipped strictly inside
- */
+/** The launcher icon's glyph on its cream tile, so the settings header matches the home screen. */
 @Composable
 fun ZeroConLogo(
     size: Dp = 48.dp,
     modifier: Modifier = Modifier
 ) {
-    Canvas(modifier = modifier.size(size)) {
-        val s = this.size.minDimension
-        val margin = s * 0.03f
-        val sqSize = s - margin * 2f
-        val sqRadius = s * 0.22f
-
-        // 1. Obsidian Squircle Background (#10121A -> #1C202C)
-        val bgBrush = Brush.verticalGradient(
-            colors = listOf(Color(0xFF10121A), Color(0xFF1C202C)),
-            startY = margin,
-            endY = s - margin
+    Box(
+        modifier = modifier
+            .size(size)
+            .clip(RoundedCornerShape(size * 0.22f))
+            .background(colorResource(R.color.ic_launcher_background)),
+        contentAlignment = Alignment.Center
+    ) {
+        Image(
+            painter = painterResource(R.drawable.zerocon_logo_glyph),
+            contentDescription = null,
+            modifier = Modifier.fillMaxSize(0.74f)
         )
-        drawRoundRect(
-            brush = bgBrush,
-            topLeft = Offset(margin, margin),
-            size = Size(sqSize, sqSize),
-            cornerRadius = CornerRadius(sqRadius, sqRadius)
-        )
-
-        // Subtle rim
-        drawRoundRect(
-            color = Color.White.copy(alpha = 0.16f),
-            topLeft = Offset(margin, margin),
-            size = Size(sqSize, sqSize),
-            cornerRadius = CornerRadius(sqRadius, sqRadius),
-            style = Stroke(width = s * 0.025f)
-        )
-
-        // 2. Platinum "0" Capsule + 45° Conversion Slash
-        val cx = s * 0.5f
-        val cy = s * 0.5f
-        val ow = s * 0.26f
-        val oh = s * 0.34f
-        val strokeW = s * 0.115f
-        val rCapsule = ow
-
-        val outerRect = Rect(
-            left = cx - ow,
-            top = cy - oh,
-            right = cx + ow,
-            bottom = cy + oh
-        )
-        val outerClipPath = Path().apply {
-            addRoundRect(RoundRect(outerRect, CornerRadius(rCapsule, rCapsule)))
-        }
-
-        val platinumBrush = Brush.verticalGradient(
-            colors = listOf(Color(0xFFFFFFFF), Color(0xFFE2E8F0)),
-            startY = cy - oh,
-            endY = cy + oh
-        )
-
-        // Draw "0" ring (inset by half stroke so outer edge matches outerClipPath)
-        val ringHalfW = ow - strokeW * 0.5f
-        val ringHalfH = oh - strokeW * 0.5f
-        val ringRadius = ringHalfW
-        drawRoundRect(
-            brush = platinumBrush,
-            topLeft = Offset(cx - ringHalfW, cy - ringHalfH),
-            size = Size(ringHalfW * 2f, ringHalfH * 2f),
-            cornerRadius = CornerRadius(ringRadius, ringRadius),
-            style = Stroke(width = strokeW)
-        )
-
-        // Clip 45-degree conversion slash strictly within the outer capsule
-        clipPath(outerClipPath) {
-            val span = s * 0.36f
-            drawLine(
-                brush = platinumBrush,
-                start = Offset(cx - span, cy + span),
-                end = Offset(cx + span, cy - span),
-                strokeWidth = strokeW * 0.9f,
-                cap = StrokeCap.Butt
-            )
-        }
     }
 }
