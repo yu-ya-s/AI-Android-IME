@@ -524,7 +524,7 @@ fun MainScreen(
         SettingsSection("キーボードの準備", palette) {
             SettingsRow(
                 title = "キーボードを有効化",
-                description = "Androidの設定でZeroCon Keyboardを有効にします。",
+                description = "Androidの設定でAIを搭載した最強のIMEを有効にします。",
                 palette = palette
             ) {
                 SettingsPrimaryButton(
@@ -537,7 +537,7 @@ fun MainScreen(
             SettingsRow(
                 title = "入力方法を選択",
                 description = if (keyboardEnabled) {
-                    "現在の入力方法をZeroCon Keyboardに切り替えます。"
+                    "現在の入力方法をAIを搭載した最強のIMEに切り替えます。"
                 } else {
                     "先にキーボードを有効化してください。"
                 },
@@ -552,7 +552,7 @@ fun MainScreen(
             }
         }
         Text(
-            text = "キーボードを有効化してZeroCon Keyboardを選択すると、入力テストと各設定が利用できます。",
+            text = "キーボードを有効化してAIを搭載した最強のIMEを選択すると、入力テストと各設定が利用できます。",
             color = palette.textMuted,
             fontSize = 12.sp,
             lineHeight = 17.sp
@@ -575,7 +575,7 @@ fun MainScreen(
                 OutlinedTextField(
                     value = testText,
                     onValueChange = { testText = it },
-                    placeholder = { Text("ここをタップして ZeroCon Keyboard をテスト", color = palette.textMuted) },
+                    placeholder = { Text("ここをタップして AIを搭載した最強のIME をテスト", color = palette.textMuted) },
                     modifier = Modifier.fillMaxWidth(),
                     textStyle = LocalTextStyle.current.copy(fontSize = 14.sp),
                     colors = settingsTextFieldColors(palette)
@@ -1180,7 +1180,7 @@ fun MainScreen(
         SettingsSection("入力方法", palette) {
             SettingsRow(
                 title = "キーボードを有効化",
-                description = "Androidの設定でZeroCon Keyboardを有効にします。",
+                description = "Androidの設定でAIを搭載した最強のIMEを有効にします。",
                 palette = palette
             ) {
                 SettingsSecondaryButton(
@@ -1192,7 +1192,7 @@ fun MainScreen(
             SettingsDivider(palette)
             SettingsRow(
                 title = "入力方法を選択",
-                description = "現在の入力方法をZeroCon Keyboardに切り替えます。",
+                description = "現在の入力方法をAIを搭載した最強のIMEに切り替えます。",
                 palette = palette
             ) {
                 SettingsSecondaryButton(
@@ -2232,7 +2232,7 @@ fun MainScreen(
 
     @Composable
     fun AboutTabContent() {
-        SettingsSection("ZeroCon Keyboard", palette) {
+        SettingsSection("AIを搭載した最強のIME", palette) {
             Column(
                 modifier = Modifier.padding(16.dp),
                 verticalArrangement = Arrangement.spacedBy(10.dp)
@@ -2244,7 +2244,7 @@ fun MainScreen(
                     ZeroConLogo(size = 44.dp)
                     Column {
                         Text(
-                            text = "ZeroCon Keyboard",
+                            text = "AIを搭載した最強のIME",
                             color = palette.textPrimary,
                             fontSize = 16.sp,
                             fontWeight = FontWeight.SemiBold
@@ -2359,7 +2359,7 @@ fun MainScreen(
                     verticalArrangement = Arrangement.spacedBy(2.dp)
                 ) {
                     Text(
-                        text = "ZeroCon Keyboard",
+                        text = "AIを搭載した最強のIME",
                         color = palette.textPrimary,
                         fontSize = 18.sp,
                         fontWeight = FontWeight.Bold,
